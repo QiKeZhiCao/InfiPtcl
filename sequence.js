@@ -1,4 +1,4 @@
-// sequence.js - 序列脉冲模式，自动创建循环复选框，修复播放按钮文字，移除加载按钮，脉冲数量自动重载，进度时间可编辑
+// sequence.js - 最终版（含横线显示/隐藏，上传MIDI重置进度）
 (function(){
     let loopSeqCheckbox = document.getElementById('loopSeqCheckbox');
     if (!loopSeqCheckbox) {
@@ -17,7 +17,6 @@
             label.appendChild(cb);
             label.appendChild(document.createTextNode(' 🔁 循环'));
             row.appendChild(label);
-            // 不再有 loadTimelineBtn，插入到第一个 param-row 之后
             const firstRow = document.querySelector('#sequencePanel .param-row');
             if (firstRow) {
                 firstRow.insertAdjacentElement('afterend', row);
@@ -39,6 +38,8 @@
     const midiUpload = document.getElementById('midiUpload');
     const midiTrackSelect = document.getElementById('midiTrackSelect');
     const precisionSelect = document.getElementById('precisionSelect');
+    const sequencePanel = document.getElementById('sequencePanel');
+    const modeSeparator = document.getElementById('modeSeparator');
     
     const playbackBar = document.getElementById('playbackBarContainer');
     const seqPlayPauseBtn = document.getElementById('seqPlayPauseBtn');
@@ -56,8 +57,7 @@
         burstCountSlider.addEventListener('input', () => {
             burstCount = parseInt(burstCountSlider.value);
             if (burstCountVal) burstCountVal.value = burstCount;
-            // 自动重载序列
-            if (sequenceEvents.length) loadTimeline();
+            if (sequenceEvents.length) loadTimeline(false);
         });
         if (burstCountVal) burstCountVal.value = burstCount;
     }
@@ -94,7 +94,7 @@
         if (currentTimeInput) currentTimeInput.value = seqPausedTime.toFixed(2);
     }
     
-    function loadTimeline() {
+    function loadTimeline(resetProgress = true) {
         try {
             let raw = timelineInput ? timelineInput.value.trim() : '';
             if(!raw) throw new Error('请输入时间戳数组');
@@ -105,7 +105,20 @@
             sequenceEvents = events;
             updateTotalDuration();
             if (seqStatusMsg) seqStatusMsg.innerText = `✅ 已加载 ${events.length} 个脉冲 （每次${burstCount}粒子）`;
-            stopSequence();
+            if (resetProgress) {
+                stopSequence();
+            } else {
+                if (seqPlaybackActive || seqPaused) {
+                    let currentTime = seqPaused ? seqPausedTime : (performance.now() / 1000 - seqStartRealTime);
+                    let newIndex = 0;
+                    while (newIndex < sequenceEvents.length && sequenceEvents[newIndex].time < currentTime) newIndex++;
+                    seqNextIndex = newIndex;
+                    if (!seqPaused && seqPlaybackActive) {
+                        const now = performance.now() / 1000;
+                        seqStartRealTime = now - currentTime;
+                    }
+                }
+            }
             return true;
         } catch(e){
             if (seqStatusMsg) seqStatusMsg.innerText = `❌ 解析失败: ${e.message}`;
@@ -119,7 +132,7 @@
         return JSON.stringify(rounded, null, 2);
     }
     
-    function updateTimelineFromSelectedTrack() {
+    function updateTimelineFromSelectedTrack(resetProgress = true) {
         if (!midiTrackSelect || !precisionSelect || !timelineInput) return;
         const selected = midiTrackSelect.value;
         const precision = parseInt(precisionSelect.value);
@@ -139,7 +152,7 @@
         const jsonStr = formatTimestamps(timestamps, precision);
         timelineInput.value = jsonStr;
         if (seqStatusMsg) seqStatusMsg.innerText = `🎵 已加载轨道: ${midiTrackSelect.options[midiTrackSelect.selectedIndex].text} | 共 ${timestamps.length} 个音符 | 精度: ${precision} 位小数`;
-        loadTimeline();
+        loadTimeline(resetProgress);
     }
     
     function updateProgressDisplay(currentSec) {
@@ -270,10 +283,14 @@
             if (seqPlaybackActive || seqPaused) stopSequence();
             if (playbackBar) playbackBar.style.display = 'none';
             if (seqStatusMsg) seqStatusMsg.innerText = '🎛️ 连续发射模式 （可调节速率）';
+            if (sequencePanel) sequencePanel.style.display = 'none';
+            if (modeSeparator) modeSeparator.style.display = 'none';
         } else {
             if (sequenceModeBtn) sequenceModeBtn.classList.add('mode-active');
             if (continuousModeBtn) continuousModeBtn.classList.remove('mode-active');
             if (playbackBar) playbackBar.style.display = 'flex';
+            if (sequencePanel) sequencePanel.style.display = 'block';
+            if (modeSeparator) modeSeparator.style.display = 'block';
             if (seqStatusMsg) seqStatusMsg.innerText = currentMidiTracks.length ? `⏱️ 序列模式 当前轨道已加载` : '⏱️ 序列模式 请先上传MIDI或手动输入时间戳';
             if (!seqPlaybackActive && !seqPaused && seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '▶️ 播放 （空格）';
         }
@@ -324,7 +341,6 @@
         }
     });
     
-    // MIDI 上传与文件名显示
     const midiFileName = document.getElementById('midiFileName');
     if (midiUpload) {
         midiUpload.addEventListener('change', (e) => {
@@ -352,7 +368,8 @@
                         return;
                     }
                     if (midiTrackSelect) midiTrackSelect.value = "0";
-                    updateTimelineFromSelectedTrack();
+                    stopSequence(); // 重置进度
+                    updateTimelineFromSelectedTrack(true);
                 } catch(err) {
                     if (seqStatusMsg) seqStatusMsg.innerText = `❌ MIDI解析失败: ${err.message}`;
                     console.error(err);
@@ -364,10 +381,10 @@
     }
     
     if (midiTrackSelect) midiTrackSelect.addEventListener('change', () => {
-        if (currentMidiTracks.length > 0) updateTimelineFromSelectedTrack();
+        if (currentMidiTracks.length > 0) updateTimelineFromSelectedTrack(false);
     });
     if (precisionSelect) precisionSelect.addEventListener('change', () => {
-        if (currentMidiTracks.length > 0) updateTimelineFromSelectedTrack();
+        if (currentMidiTracks.length > 0) updateTimelineFromSelectedTrack(false);
     });
     
     if (timelineInput) {

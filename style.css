@@ -61,6 +61,22 @@ input, select, button {
     font-family: inherit;
 }
 
+/* 数值输入框：统一字体，鼠标悬停显示文本光标 */
+input[type="number"],
+input[type="text"],
+.time-input,
+.range-value {
+    background: #1a1c2a;
+    border: 1px solid #6a6f9a;
+    color: #ffd89a;
+    border-radius: 16px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+    text-align: right;
+    cursor: text;
+}
+
 input[type="range"] {
     cursor: pointer;
     accent-color: #ffaa66;
@@ -201,59 +217,98 @@ body.resizing {
     flex-shrink: 0;
 }
 
+/* 范围参数容器 */
 .range-controls {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
     flex: 1;
     min-width: 0;
-    row-gap: 6px;
+    flex-wrap: wrap;
 }
-
-/* 当空间不足时，将两个滑块及其数值分为两行 */
 .range-controls .range-value {
-    width: 42px;
-    text-align: right;
-    background: #000000aa;
-    border-radius: 18px;
-    padding: 3px 6px;
-    flex-shrink: 0;
+    width: 55px;
 }
-
 .range-controls input[type="range"] {
     flex: 1;
     min-width: 40px;
     margin: 0;
     padding: 0;
 }
-
-/* 确保第二个滑块及其数值、单位在同一行 */
-.range-controls .range-sep {
+.range-sep {
     flex-shrink: 0;
     color: #ffdd99;
     margin: 0 2px;
 }
-
-.range-controls .range-unit {
+.range-unit {
     flex-shrink: 0;
-    color: #ffdd99;
+    color: #ffffff; /* 单位统一白色 */
     margin-left: 2px;
 }
 
-/* 单滑块行 */
-.param-row > .range-value {
-    width: 48px;
-    text-align: right;
-    background: #000000aa;
-    border-radius: 18px;
-    padding: 3px 8px;
-    flex-shrink: 0;
+/* 单滑块行的数值 */
+.param-row > .range-value,
+.time-input {
+    width: 65px;
+}
+.time-input {
+    width: 75px;
 }
 
 .param-row input[type="range"] {
     flex: 1;
     min-width: 60px;
+}
+
+/* 文件控件容器：文件名右对齐，按钮靠右 */
+.file-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+}
+.file-name {
+    text-align: right;
+    color: #ffd89a;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+.file-label {
+    background: #3f4668;
+    border-radius: 28px;
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 12px;
+}
+/* 统一按钮样式（包括“使用默认”） */
+.btn-secondary,
+button:not(.mode-btn):not(.play-pause-btn) {
+    background: #2c3e5a;
+    border: 1px solid #6a6f9a;
+    border-radius: 28px;
+    padding: 4px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: 500;
+    color: white;
+}
+.btn-secondary:hover,
+button:not(.mode-btn):not(.play-pause-btn):hover {
+    background: #4a4e72;
+    border-color: #ffc285;
+}
+
+/* 单位符号统一白色 */
+.unit-symbol {
+    color: #ffffff;
+    margin-left: 2px;
+    flex-shrink: 0;
 }
 
 /* 统一滑块样式 */
@@ -271,7 +326,6 @@ body.resizing {
     outline: none;
     vertical-align: middle;
 }
-
 .control-panel input[type="range"]::-webkit-slider-thumb,
 .range-controls input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -283,7 +337,6 @@ body.resizing {
     border: none;
     margin-top: 0;
 }
-
 .control-panel input[type="range"]::-moz-range-thumb,
 .range-controls input[type="range"]::-moz-range-thumb {
     width: 12px;
@@ -293,24 +346,32 @@ body.resizing {
     cursor: pointer;
     border: none;
 }
-
 .control-panel input[type="range"]::-moz-range-track,
 .range-controls input[type="range"]::-moz-range-track {
     background: #2a2e42;
     height: 4px;
     border-radius: 2px;
 }
-
 .control-panel input[type="range"]::-moz-focus-outer,
 .range-controls input[type="range"]::-moz-focus-outer {
     border: 0;
 }
 
-/* 统一数值颜色（无 important） */
 .value-number,
 .range-value {
     color: #ffd89a;
     font-weight: 500;
+}
+
+/* 隐藏数字输入框的上下箭头 */
+input[type="number"] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
 }
 
 hr {
@@ -356,15 +417,6 @@ textarea {
     text-align: center;
     margin-top: 6px;
 }
-.file-label {
-    background: #3f4668;
-    border-radius: 28px;
-    padding: 4px 12px;
-    width: 100%;
-    text-align: center;
-    cursor: pointer;
-    display: inline-block;
-}
 
 @media (max-width: 750px) {
     .control-panel {
@@ -386,6 +438,7 @@ textarea {
     }
 }
 
+/* 底部播放进度条 */
 .playback-bar-container {
     position: fixed;
     bottom: 0;
@@ -489,45 +542,4 @@ textarea {
     .progress-slider-wrapper {
         min-width: 80px;
     }
-}
-
-/* 可编辑数字输入框样式 */
-.time-input,
-.range-value {
-    width: 60px;
-    text-align: right;
-    background: #000000aa;
-    border-radius: 18px;
-    padding: 3px 8px;
-    border: 1px solid #ffaa66;
-    color: #ffd89a;
-    font-family: inherit;
-    font-size: 12px;
-}
-
-.range-value {
-    width: 55px;
-}
-
-.time-input {
-    width: 70px;
-}
-
-/* 文件名显示 */
-.file-name {
-    max-width: 120px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* 移除 number 输入框的上下箭头（跨浏览器） */
-input[type="number"] {
-    -moz-appearance: textfield;  /* Firefox */
-    appearance: textfield;
-}
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
 }

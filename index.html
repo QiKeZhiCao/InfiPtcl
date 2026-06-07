@@ -59,17 +59,17 @@
     <div class="param-row">
         <span>📈 发射速率/秒</span>
         <input type="range" id="emitRate" min="10" max="800" step="5" value="220">
-        <input type="number" id="emitRateVal" class="range-value value-number" step="1" value="220">
+        <input type="number" id="emitRateVal" class="range-value" step="1" value="220">
     </div>
 
     <div class="param-row">
         <span>⏳ 开始消失时间</span>
         <div class="range-controls">
-            <input type="number" id="fadeStartMinVal" class="range-value value-number" step="0.1" value="0.5">
+            <input type="number" id="fadeStartMinVal" class="range-value" step="0.1" value="0.5">
             <input type="range" id="fadeStartMin" min="0" max="10" step="0.1" value="0.5">
             <span class="range-sep">~</span>
             <input type="range" id="fadeStartMax" min="0" max="10" step="0.1" value="2.0">
-            <input type="number" id="fadeStartMaxVal" class="range-value value-number" step="0.1" value="2.0">
+            <input type="number" id="fadeStartMaxVal" class="range-value" step="0.1" value="2.0">
             <span class="range-unit">s</span>
         </div>
     </div>
@@ -77,11 +77,11 @@
     <div class="param-row">
         <span>⏳ 消失持续时间</span>
         <div class="range-controls">
-            <input type="number" id="fadeDurationMinVal" class="range-value value-number" step="0.1" value="0.3">
+            <input type="number" id="fadeDurationMinVal" class="range-value" step="0.1" value="0.3">
             <input type="range" id="fadeDurationMin" min="0" max="8" step="0.1" value="0.3">
             <span class="range-sep">~</span>
             <input type="range" id="fadeDurationMax" min="0" max="8" step="0.1" value="1.0">
-            <input type="number" id="fadeDurationMaxVal" class="range-value value-number" step="0.1" value="1.0">
+            <input type="number" id="fadeDurationMaxVal" class="range-value" step="0.1" value="1.0">
             <span class="range-unit">s</span>
         </div>
     </div>
@@ -89,11 +89,11 @@
     <div class="param-row">
         <span>🔘 粒子大小</span>
         <div class="range-controls">
-            <input type="number" id="sizeMinVal" class="range-value value-number" step="1" value="6">
+            <input type="number" id="sizeMinVal" class="range-value" step="1" value="6">
             <input type="range" id="sizeMin" min="2" max="80" step="1" value="6">
             <span class="range-sep">~</span>
             <input type="range" id="sizeMax" min="4" max="100" step="1" value="24">
-            <input type="number" id="sizeMaxVal" class="range-value value-number" step="1" value="24">
+            <input type="number" id="sizeMaxVal" class="range-value" step="1" value="24">
             <span class="range-unit">px</span>
         </div>
     </div>
@@ -101,11 +101,11 @@
     <div class="param-row">
         <span>💨 速度大小</span>
         <div class="range-controls">
-            <input type="number" id="speedMinVal" class="range-value value-number" step="5" value="80">
+            <input type="number" id="speedMinVal" class="range-value" step="5" value="80">
             <input type="range" id="speedMin" min="10" max="500" step="5" value="80">
             <span class="range-sep">~</span>
             <input type="range" id="speedMax" min="30" max="800" step="5" value="240">
-            <input type="number" id="speedMaxVal" class="range-value value-number" step="5" value="240">
+            <input type="number" id="speedMaxVal" class="range-value" step="5" value="240">
             <span class="range-unit">px/s</span>
         </div>
     </div>
@@ -113,54 +113,58 @@
     <div class="param-row">
         <span>🧭 基准方向</span>
         <input type="range" id="baseAngle" min="0" max="360" step="1" value="0">
-        <input type="number" id="baseAngleVal" class="range-value value-number" step="1" value="0">°
+        <input type="number" id="baseAngleVal" class="range-value" step="1" value="0">
+        <span class="unit-symbol">°</span>
     </div>
 
     <div class="param-row">
         <span>🎲 随机偏转角范围</span>
         <input type="range" id="angleSpread" min="0" max="180" step="1" value="180">
-        <input type="number" id="angleSpreadVal" class="range-value value-number" step="1" value="180">°
+        <input type="number" id="angleSpreadVal" class="range-value" step="1" value="180">
+        <span class="unit-symbol">°</span>
     </div>
 
     <h4>🌪️ 场域 & 旋转</h4>
     <div class="param-row">
         <span>🌍 重力 X</span>
         <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0">
-        <input type="number" id="gravityXVal" class="range-value value-number" step="5" value="0">
+        <input type="number" id="gravityXVal" class="range-value" step="5" value="0">
     </div>
 
     <div class="param-row">
         <span>🌍 重力 Y</span>
         <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80">
-        <input type="number" id="gravityYVal" class="range-value value-number" step="5" value="80">
+        <input type="number" id="gravityYVal" class="range-value" step="5" value="80">
     </div>
 
     <div class="param-row">
         <span>🌀 空气阻力</span>
         <input type="range" id="damping" min="0.95" max="1" step="0.002" value="0.99">
-        <input type="number" id="dampingVal" class="range-value value-number" step="0.001" value="0.990">
+        <input type="number" id="dampingVal" class="range-value" step="0.001" value="0.990">
     </div>
 
     <div class="param-row">
         <span>🔄 初始旋转角度</span>
         <input type="range" id="initRotAngle" min="0" max="360" step="1" value="0">
-        <input type="number" id="initRotAngleVal" class="range-value value-number" step="1" value="0">°
+        <input type="number" id="initRotAngleVal" class="range-value" step="1" value="0">
+        <span class="unit-symbol">°</span>
     </div>
 
     <div class="param-row">
         <span>🎲 初始旋转随机范围</span>
         <input type="range" id="initRotSpread" min="0" max="180" step="1" value="0">
-        <input type="number" id="initRotSpreadVal" class="range-value value-number" step="1" value="0">°
+        <input type="number" id="initRotSpreadVal" class="range-value" step="1" value="0">
+        <span class="unit-symbol">°</span>
     </div>
 
     <div class="param-row">
         <span>🎡 旋转速度范围</span>
         <div class="range-controls">
-            <input type="number" id="rotSpeedMinVal" class="range-value value-number" step="0.1" value="-1.2">
+            <input type="number" id="rotSpeedMinVal" class="range-value" step="0.1" value="-1.2">
             <input type="range" id="rotSpeedMin" min="-3.5" max="3.5" step="0.1" value="-1.2">
             <span class="range-sep">~</span>
             <input type="range" id="rotSpeedMax" min="-3.5" max="3.5" step="0.1" value="1.8">
-            <input type="number" id="rotSpeedMaxVal" class="range-value value-number" step="0.1" value="1.8">
+            <input type="number" id="rotSpeedMaxVal" class="range-value" step="0.1" value="1.8">
             <span class="range-unit">rad/s</span>
         </div>
     </div>
@@ -168,47 +172,50 @@
     <div class="param-row">
         <span>🎯 发射半径 （偏移）</span>
         <input type="range" id="emitRadius" min="0" max="45" step="1" value="5">
-        <input type="number" id="emitRadiusVal" class="range-value value-number" step="1" value="5"> px
+        <input type="number" id="emitRadiusVal" class="range-value" step="1" value="5">
+        <span class="unit-symbol">px</span>
     </div>
 
+    <!-- 粒子贴图：文件名右对齐，按钮“上传图片”和“使用默认” -->
     <div class="param-row">
         <span>🖼️ 粒子贴图</span>
-        <div style="display:flex; gap:8px; flex:1;">
-            <label class="file-label" style="background:#3f4668; border-radius:28px; padding:4px 12px; cursor:pointer;">📁 上传图片
+        <div class="file-controls">
+            <span id="textureFileName" class="file-name">未选择</span>
+            <label class="file-label">📁 上传图片
                 <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
             </label>
-            <span id="textureFileName" class="file-name" style="color:#ffd89a; font-size:11px; align-self:center;">未选择</span>
+            <button id="resetTextureBtn" class="btn-secondary">使用默认</button>
         </div>
     </div>
-    <div class="param-row">
-        <span>🔄 默认纹理</span>
-        <button id="resetTextureBtn" style="background:#2c3e5a;">✨ 发光圆形</button>
-    </div>
+
     <div class="param-row">
         <span>📌 最大粒子数</span>
         <input type="range" id="maxParticles" min="500" max="6000" step="100" value="3000">
-        <input type="number" id="maxParticlesVal" class="range-value value-number" step="100" value="3000">
+        <input type="number" id="maxParticlesVal" class="range-value" step="100" value="3000">
     </div>
 
-    <hr>
+    <hr id="modeSeparator" style="display: none;">
 
-    <div id="sequencePanel">
+    <div id="sequencePanel" style="display: none;">
         <h4>⏲️ 时间戳序列脉冲发射</h4>
         <div class="param-row">
             <span>每次脉冲数量</span>
             <input type="range" id="burstCount" min="1" max="200" step="1" value="12">
-            <input type="number" id="burstCountVal" class="range-value value-number" step="1" value="12"> 个
+            <input type="number" id="burstCountVal" class="range-value" step="1" value="12"> <span class="unit-symbol">个</span>
         </div>
         <div class="param-row">
             <span>时间戳数组 （秒）</span>
             <textarea id="timelineInput" rows="3" placeholder='例如： [0.0, 0.5, 0.5, 1.2, 2.0]'></textarea>
         </div>
-        <!-- 加载序列按钮已移除，脉冲数量变化自动重载 -->
+        <!-- MIDI 导入：文件名右对齐，按钮“导入” -->
         <div class="param-row">
-            <label class="file-label" style="background:#4a3f6a;">🎹 上传MIDI文件 （.mid）
-                <input type="file" id="midiUpload" accept="audio/midi, .mid" style="display:none;">
-            </label>
-            <span id="midiFileName" class="file-name" style="color:#ffd89a; font-size:11px;">未选择</span>
+            <span>🎹 MIDI文件</span>
+            <div class="file-controls">
+                <span id="midiFileName" class="file-name">未选择</span>
+                <label class="file-label">导入
+                    <input type="file" id="midiUpload" accept="audio/midi, .mid" style="display:none;">
+                </label>
+            </div>
         </div>
         <div class="param-row">
             <span>🎚️ MIDI轨道</span>
