@@ -490,3 +490,44 @@ textarea {
         min-width: 80px;
     }
 }
+
+/* 可编辑数字输入框样式 */
+.time-input,
+.range-value {
+    width: 60px;
+    text-align: right;
+    background: #000000aa;
+    border-radius: 18px;
+    padding: 3px 8px;
+    border: 1px solid #ffaa66;
+    color: #ffd89a;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+.range-value {
+    width: 55px;
+}
+
+.time-input {
+    width: 70px;
+}
+
+/* 文件名显示 */
+.file-name {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* 移除 number 输入框的上下箭头（跨浏览器） */
+input[type="number"] {
+    -moz-appearance: textfield;  /* Firefox */
+    appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}

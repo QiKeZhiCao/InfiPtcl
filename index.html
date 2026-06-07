@@ -39,7 +39,7 @@
 <div class="playback-bar-container" id="playbackBarContainer" style="display: none;">
     <div class="playback-controls">
         <button id="seqPlayPauseBtn" class="play-pause-btn">▶️ 播放 （空格）</button>
-        <span class="current-time" id="currentTimeDisplay">0.00</span>
+        <input type="number" id="currentTimeInput" class="time-input" step="0.01" value="0.00">
         <div class="progress-slider-wrapper">
             <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" step="0.01" value="0">
         </div>
@@ -47,7 +47,7 @@
     </div>
 </div>
 
-<!-- 右侧控制面板（唯一） -->
+<!-- 右侧控制面板 -->
 <div class="control-panel">
     <div class="resize-handle" title="拖拽调整宽度"></div>
     <div class="mode-switch" id="modeSwitch">
@@ -59,28 +59,29 @@
     <div class="param-row">
         <span>📈 发射速率/秒</span>
         <input type="range" id="emitRate" min="10" max="800" step="5" value="220">
-        <span id="emitRateVal" class="range-value value-number">220</span>
+        <input type="number" id="emitRateVal" class="range-value value-number" step="1" value="220">
     </div>
 
     <div class="param-row">
         <span>⏳ 开始消失时间</span>
         <div class="range-controls">
-            <span id="fadeStartMinVal" class="range-value value-number">0.5</span>
-            <input type="range" id="fadeStartMin" min="0" max="5" step="0.1" value="0.5">
+            <input type="number" id="fadeStartMinVal" class="range-value value-number" step="0.1" value="0.5">
+            <input type="range" id="fadeStartMin" min="0" max="10" step="0.1" value="0.5">
             <span class="range-sep">~</span>
-            <input type="range" id="fadeStartMax" min="0" max="8" step="0.1" value="2.0">
-            <span id="fadeStartMaxVal" class="range-value value-number">2.0</span>
+            <input type="range" id="fadeStartMax" min="0" max="10" step="0.1" value="2.0">
+            <input type="number" id="fadeStartMaxVal" class="range-value value-number" step="0.1" value="2.0">
             <span class="range-unit">s</span>
         </div>
     </div>
+
     <div class="param-row">
         <span>⏳ 消失持续时间</span>
         <div class="range-controls">
-            <span id="fadeDurationMinVal" class="range-value value-number">0.3</span>
-            <input type="range" id="fadeDurationMin" min="0.1" max="3" step="0.1" value="0.3">
+            <input type="number" id="fadeDurationMinVal" class="range-value value-number" step="0.1" value="0.3">
+            <input type="range" id="fadeDurationMin" min="0" max="8" step="0.1" value="0.3">
             <span class="range-sep">~</span>
-            <input type="range" id="fadeDurationMax" min="0.2" max="5" step="0.1" value="1.0">
-            <span id="fadeDurationMaxVal" class="range-value value-number">1.0</span>
+            <input type="range" id="fadeDurationMax" min="0" max="8" step="0.1" value="1.0">
+            <input type="number" id="fadeDurationMaxVal" class="range-value value-number" step="0.1" value="1.0">
             <span class="range-unit">s</span>
         </div>
     </div>
@@ -88,11 +89,11 @@
     <div class="param-row">
         <span>🔘 粒子大小</span>
         <div class="range-controls">
-            <span id="sizeMinVal" class="range-value value-number">6</span>
+            <input type="number" id="sizeMinVal" class="range-value value-number" step="1" value="6">
             <input type="range" id="sizeMin" min="2" max="80" step="1" value="6">
             <span class="range-sep">~</span>
             <input type="range" id="sizeMax" min="4" max="100" step="1" value="24">
-            <span id="sizeMaxVal" class="range-value value-number">24</span>
+            <input type="number" id="sizeMaxVal" class="range-value value-number" step="1" value="24">
             <span class="range-unit">px</span>
         </div>
     </div>
@@ -100,11 +101,11 @@
     <div class="param-row">
         <span>💨 速度大小</span>
         <div class="range-controls">
-            <span id="speedMinVal" class="range-value value-number">80</span>
+            <input type="number" id="speedMinVal" class="range-value value-number" step="5" value="80">
             <input type="range" id="speedMin" min="10" max="500" step="5" value="80">
             <span class="range-sep">~</span>
             <input type="range" id="speedMax" min="30" max="800" step="5" value="240">
-            <span id="speedMaxVal" class="range-value value-number">240</span>
+            <input type="number" id="speedMaxVal" class="range-value value-number" step="5" value="240">
             <span class="range-unit">px/s</span>
         </div>
     </div>
@@ -112,54 +113,54 @@
     <div class="param-row">
         <span>🧭 基准方向</span>
         <input type="range" id="baseAngle" min="0" max="360" step="1" value="0">
-        <span id="baseAngleVal" class="range-value value-number">0</span>°
+        <input type="number" id="baseAngleVal" class="range-value value-number" step="1" value="0">°
     </div>
 
     <div class="param-row">
         <span>🎲 随机偏转角范围</span>
         <input type="range" id="angleSpread" min="0" max="180" step="1" value="180">
-        <span id="angleSpreadVal" class="range-value value-number">180</span>°
+        <input type="number" id="angleSpreadVal" class="range-value value-number" step="1" value="180">°
     </div>
 
     <h4>🌪️ 场域 & 旋转</h4>
     <div class="param-row">
         <span>🌍 重力 X</span>
-        <input type="range" id="gravityX" min="-300" max="300" step="5" value="0">
-        <span id="gravityXVal" class="range-value value-number">0</span>
+        <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0">
+        <input type="number" id="gravityXVal" class="range-value value-number" step="5" value="0">
     </div>
 
     <div class="param-row">
         <span>🌍 重力 Y</span>
-        <input type="range" id="gravityY" min="-300" max="300" step="5" value="80">
-        <span id="gravityYVal" class="range-value value-number">80</span>
+        <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80">
+        <input type="number" id="gravityYVal" class="range-value value-number" step="5" value="80">
     </div>
 
     <div class="param-row">
         <span>🌀 空气阻力</span>
         <input type="range" id="damping" min="0.95" max="1" step="0.002" value="0.99">
-        <span id="dampingVal" class="range-value value-number">0.990</span>
+        <input type="number" id="dampingVal" class="range-value value-number" step="0.001" value="0.990">
     </div>
 
     <div class="param-row">
         <span>🔄 初始旋转角度</span>
         <input type="range" id="initRotAngle" min="0" max="360" step="1" value="0">
-        <span id="initRotAngleVal" class="range-value value-number">0</span>°
+        <input type="number" id="initRotAngleVal" class="range-value value-number" step="1" value="0">°
     </div>
 
     <div class="param-row">
         <span>🎲 初始旋转随机范围</span>
         <input type="range" id="initRotSpread" min="0" max="180" step="1" value="0">
-        <span id="initRotSpreadVal" class="range-value value-number">0</span>°
+        <input type="number" id="initRotSpreadVal" class="range-value value-number" step="1" value="0">°
     </div>
 
     <div class="param-row">
         <span>🎡 旋转速度范围</span>
         <div class="range-controls">
-            <span id="rotSpeedMinVal" class="range-value value-number">-1.2</span>
+            <input type="number" id="rotSpeedMinVal" class="range-value value-number" step="0.1" value="-1.2">
             <input type="range" id="rotSpeedMin" min="-3.5" max="3.5" step="0.1" value="-1.2">
             <span class="range-sep">~</span>
             <input type="range" id="rotSpeedMax" min="-3.5" max="3.5" step="0.1" value="1.8">
-            <span id="rotSpeedMaxVal" class="range-value value-number">1.8</span>
+            <input type="number" id="rotSpeedMaxVal" class="range-value value-number" step="0.1" value="1.8">
             <span class="range-unit">rad/s</span>
         </div>
     </div>
@@ -167,14 +168,17 @@
     <div class="param-row">
         <span>🎯 发射半径 （偏移）</span>
         <input type="range" id="emitRadius" min="0" max="45" step="1" value="5">
-        <span id="emitRadiusVal" class="range-value value-number">5</span> px
+        <input type="number" id="emitRadiusVal" class="range-value value-number" step="1" value="5"> px
     </div>
 
     <div class="param-row">
         <span>🖼️ 粒子贴图</span>
-        <label class="file-label" style="background:#3f4668; border-radius:28px; padding:4px 12px; width:100%; text-align:center; cursor:pointer;">📁 上传图片
-            <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
-        </label>
+        <div style="display:flex; gap:8px; flex:1;">
+            <label class="file-label" style="background:#3f4668; border-radius:28px; padding:4px 12px; cursor:pointer;">📁 上传图片
+                <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+            </label>
+            <span id="textureFileName" class="file-name" style="color:#ffd89a; font-size:11px; align-self:center;">未选择</span>
+        </div>
     </div>
     <div class="param-row">
         <span>🔄 默认纹理</span>
@@ -183,7 +187,7 @@
     <div class="param-row">
         <span>📌 最大粒子数</span>
         <input type="range" id="maxParticles" min="500" max="6000" step="100" value="3000">
-        <span id="maxParticlesVal" class="range-value value-number">3000</span>
+        <input type="number" id="maxParticlesVal" class="range-value value-number" step="100" value="3000">
     </div>
 
     <hr>
@@ -193,19 +197,18 @@
         <div class="param-row">
             <span>每次脉冲数量</span>
             <input type="range" id="burstCount" min="1" max="200" step="1" value="12">
-            <span id="burstCountVal" class="range-value value-number">12</span> 个
+            <input type="number" id="burstCountVal" class="range-value value-number" step="1" value="12"> 个
         </div>
         <div class="param-row">
             <span>时间戳数组 （秒）</span>
             <textarea id="timelineInput" rows="3" placeholder='例如： [0.0, 0.5, 0.5, 1.2, 2.0]'></textarea>
         </div>
-        <div class="param-row">
-            <button id="loadTimelineBtn" style="background:#3a5a7a;">📥 加载序列</button>
-        </div>
+        <!-- 加载序列按钮已移除，脉冲数量变化自动重载 -->
         <div class="param-row">
             <label class="file-label" style="background:#4a3f6a;">🎹 上传MIDI文件 （.mid）
                 <input type="file" id="midiUpload" accept="audio/midi, .mid" style="display:none;">
             </label>
+            <span id="midiFileName" class="file-name" style="color:#ffd89a; font-size:11px;">未选择</span>
         </div>
         <div class="param-row">
             <span>🎚️ MIDI轨道</span>

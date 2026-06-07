@@ -1,4 +1,4 @@
-// sequence.js - 序列脉冲模式，自动创建循环复选框，修复播放按钮文字
+// sequence.js - 序列脉冲模式，自动创建循环复选框，修复播放按钮文字，移除加载按钮，脉冲数量自动重载，进度时间可编辑
 (function(){
     let loopSeqCheckbox = document.getElementById('loopSeqCheckbox');
     if (!loopSeqCheckbox) {
@@ -17,9 +17,10 @@
             label.appendChild(cb);
             label.appendChild(document.createTextNode(' 🔁 循环'));
             row.appendChild(label);
-            const loadBtn = document.getElementById('loadTimelineBtn');
-            if (loadBtn && loadBtn.parentElement) {
-                loadBtn.parentElement.insertAdjacentElement('afterend', row);
+            // 不再有 loadTimelineBtn，插入到第一个 param-row 之后
+            const firstRow = document.querySelector('#sequencePanel .param-row');
+            if (firstRow) {
+                firstRow.insertAdjacentElement('afterend', row);
             } else {
                 sequencePanel.appendChild(row);
             }
@@ -32,7 +33,6 @@
     const continuousModeBtn = document.getElementById('continuousModeBtn');
     const sequenceModeBtn = document.getElementById('sequenceModeBtn');
     const timelineInput = document.getElementById('timelineInput');
-    const loadTimelineBtn = document.getElementById('loadTimelineBtn');
     const seqStatusMsg = document.getElementById('seqStatusMsg');
     const burstCountSlider = document.getElementById('burstCount');
     const burstCountVal = document.getElementById('burstCountVal');
@@ -43,7 +43,7 @@
     const playbackBar = document.getElementById('playbackBarContainer');
     const seqPlayPauseBtn = document.getElementById('seqPlayPauseBtn');
     const progressSlider = document.getElementById('progressSlider');
-    const currentTimeSpan = document.getElementById('currentTimeDisplay');
+    const currentTimeInput = document.getElementById('currentTimeInput');
     const totalTimeSpan = document.getElementById('totalTimeDisplay');
     
     if (!seqPlayPauseBtn || !progressSlider) {
@@ -55,10 +55,11 @@
     if (burstCountSlider) {
         burstCountSlider.addEventListener('input', () => {
             burstCount = parseInt(burstCountSlider.value);
-            if (burstCountVal) burstCountVal.innerText = burstCount;
-            if (window.sequenceEvents && window.sequenceEvents.length) loadTimeline();
+            if (burstCountVal) burstCountVal.value = burstCount;
+            // 自动重载序列
+            if (sequenceEvents.length) loadTimeline();
         });
-        if (burstCountVal) burstCountVal.innerText = burstCount;
+        if (burstCountVal) burstCountVal.value = burstCount;
     }
     
     let currentMidiTracks = [];
@@ -90,7 +91,7 @@
         if (totalTimeSpan) totalTimeSpan.innerText = totalDuration.toFixed(2);
         if (progressSlider) progressSlider.max = totalDuration;
         if (progressSlider) progressSlider.value = seqPausedTime;
-        if (currentTimeSpan) currentTimeSpan.innerText = seqPausedTime.toFixed(2);
+        if (currentTimeInput) currentTimeInput.value = seqPausedTime.toFixed(2);
     }
     
     function loadTimeline() {
@@ -144,10 +145,10 @@
     function updateProgressDisplay(currentSec) {
         if (totalDuration > 0) {
             if (progressSlider) progressSlider.value = currentSec;
-            if (currentTimeSpan) currentTimeSpan.innerText = currentSec.toFixed(2);
+            if (currentTimeInput) currentTimeInput.value = currentSec.toFixed(2);
         } else {
             if (progressSlider) progressSlider.value = 0;
-            if (currentTimeSpan) currentTimeSpan.innerText = "0.00";
+            if (currentTimeInput) currentTimeInput.value = "0.00";
         }
     }
     
@@ -278,7 +279,6 @@
         }
     }
     
-    if (loadTimelineBtn) loadTimelineBtn.addEventListener('click', loadTimeline);
     if (continuousModeBtn) continuousModeBtn.addEventListener('click', () => setMode(true));
     if (sequenceModeBtn) sequenceModeBtn.addEventListener('click', () => setMode(false));
     if (seqPlayPauseBtn) {
@@ -292,7 +292,7 @@
         progressSlider.addEventListener('input', (e) => {
             const val = parseFloat(e.target.value);
             if (!isNaN(val) && sequenceEvents.length) {
-                if (currentTimeSpan) currentTimeSpan.innerText = val.toFixed(2);
+                if (currentTimeInput) currentTimeInput.value = val.toFixed(2);
                 if (!seqPlaybackActive || seqPaused) {
                     seqPausedTime = val;
                     let newIdx = 0;
@@ -308,6 +308,12 @@
             if (!isNaN(val)) seekTo(val);
         });
     }
+    if (currentTimeInput) {
+        currentTimeInput.addEventListener('change', () => {
+            let val = parseFloat(currentTimeInput.value);
+            if (!isNaN(val)) seekTo(val);
+        });
+    }
     
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && !window._isContinuousMode) {
@@ -318,10 +324,13 @@
         }
     });
     
+    // MIDI 上传与文件名显示
+    const midiFileName = document.getElementById('midiFileName');
     if (midiUpload) {
         midiUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            if (midiFileName) midiFileName.innerText = file.name;
             const reader = new FileReader();
             reader.onload = function(evt) {
                 try {

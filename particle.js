@@ -1,4 +1,4 @@
-// particle.js - 支持基准方向、随机偏转、初始旋转角度及随机范围，寿命拆分为开始消失时间+持续时间
+// particle.js - 支持可编辑数值、重力范围扩大至±2000、消失持续时间扩大
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
@@ -7,7 +7,6 @@
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
     let emitActive = true;
-    let lastFrameTime = 0;
     
     let params = {
         emitRate: 220,
@@ -212,115 +211,107 @@
         ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
     
+    // 通用滑块绑定函数（支持输入框双向同步）
+    function bindSliderInput(sliderId, inputId, paramName, isFloat, updateCallback) {
+        const slider = document.getElementById(sliderId);
+        const input = document.getElementById(inputId);
+        if (!slider || !input) return;
+        const update = () => {
+            let val = isFloat ? parseFloat(slider.value) : parseInt(slider.value);
+            params[paramName] = val;
+            input.value = isFloat ? val.toFixed(isFloat===true?2:0) : val;
+            if (updateCallback) updateCallback(val);
+        };
+        const updateFromInput = () => {
+            let val = isFloat ? parseFloat(input.value) : parseInt(input.value);
+            if (isNaN(val)) return;
+            val = Math.min(parseFloat(slider.max), Math.max(parseFloat(slider.min), val));
+            slider.value = val;
+            params[paramName] = val;
+            if (updateCallback) updateCallback(val);
+        };
+        slider.addEventListener('input', update);
+        input.addEventListener('change', updateFromInput);
+        update(); // 初始同步
+    }
+    
+    function bindRangeSliders(minSliderId, minInputId, maxSliderId, maxInputId, paramMin, paramMax, isFloat, unit) {
+        const minSlider = document.getElementById(minSliderId);
+        const minInput = document.getElementById(minInputId);
+        const maxSlider = document.getElementById(maxSliderId);
+        const maxInput = document.getElementById(maxInputId);
+        if (!minSlider || !maxSlider) return;
+        const updateMin = () => {
+            let val = isFloat ? parseFloat(minSlider.value) : parseInt(minSlider.value);
+            params[paramMin] = val;
+            if (minInput) minInput.value = isFloat ? val.toFixed(1) : val;
+            if (params[paramMin] > params[paramMax]) {
+                params[paramMax] = params[paramMin];
+                if (maxSlider) maxSlider.value = params[paramMin];
+                if (maxInput) maxInput.value = isFloat ? params[paramMin].toFixed(1) : params[paramMin];
+            }
+        };
+        const updateMax = () => {
+            let val = isFloat ? parseFloat(maxSlider.value) : parseInt(maxSlider.value);
+            params[paramMax] = val;
+            if (maxInput) maxInput.value = isFloat ? val.toFixed(1) : val;
+            if (params[paramMax] < params[paramMin]) {
+                params[paramMin] = params[paramMax];
+                if (minSlider) minSlider.value = params[paramMin];
+                if (minInput) minInput.value = isFloat ? params[paramMin].toFixed(1) : params[paramMin];
+            }
+        };
+        const updateMinFromInput = () => {
+            let val = isFloat ? parseFloat(minInput.value) : parseInt(minInput.value);
+            if (isNaN(val)) return;
+            val = Math.min(parseFloat(minSlider.max), Math.max(parseFloat(minSlider.min), val));
+            minSlider.value = val;
+            params[paramMin] = val;
+            if (params[paramMin] > params[paramMax]) {
+                params[paramMax] = params[paramMin];
+                if (maxSlider) maxSlider.value = params[paramMin];
+                if (maxInput) maxInput.value = isFloat ? params[paramMin].toFixed(1) : params[paramMin];
+            }
+        };
+        const updateMaxFromInput = () => {
+            let val = isFloat ? parseFloat(maxInput.value) : parseInt(maxInput.value);
+            if (isNaN(val)) return;
+            val = Math.min(parseFloat(maxSlider.max), Math.max(parseFloat(maxSlider.min), val));
+            maxSlider.value = val;
+            params[paramMax] = val;
+            if (params[paramMax] < params[paramMin]) {
+                params[paramMin] = params[paramMax];
+                if (minSlider) minSlider.value = params[paramMin];
+                if (minInput) minInput.value = isFloat ? params[paramMin].toFixed(1) : params[paramMin];
+            }
+        };
+        minSlider.addEventListener('input', updateMin);
+        maxSlider.addEventListener('input', updateMax);
+        if (minInput) minInput.addEventListener('change', updateMinFromInput);
+        if (maxInput) maxInput.addEventListener('change', updateMaxFromInput);
+        updateMin();
+        updateMax();
+    }
+    
     function bindUI() {
-        // 普通滑块映射（移除了 lifeMin/lifeMax）
-        const mappings = [
-            ['emitRate', 'emitRate', false],
-            ['sizeMin', 'sizeMin', false],
-            ['sizeMax', 'sizeMax', false],
-            ['speedMin', 'speedMin', false],
-            ['speedMax', 'speedMax', false],
-            ['gravityX', 'gravityX', false],
-            ['gravityY', 'gravityY', false],
-            ['damping', 'damping', true],
-            ['rotSpeedMin', 'rotSpeedMin', true],
-            ['rotSpeedMax', 'rotSpeedMax', true],
-            ['emitRadius', 'emitRadius', false],
-            ['maxParticles', 'maxParticles', false]
-        ];
-        for (let [id, prop, isFloat] of mappings) {
-            const slider = document.getElementById(id);
-            const span = document.getElementById(id + 'Val');
-            if (!slider) continue;
-            const update = () => {
-                let val = isFloat ? parseFloat(slider.value) : parseInt(slider.value);
-                params[prop] = val;
-                if (span) span.innerText = isFloat ? val.toFixed(2) : val;
-            };
-            slider.addEventListener('input', update);
-            update();
-        }
+        // 单滑块绑定
+        bindSliderInput('emitRate', 'emitRateVal', 'emitRate', false);
+        bindSliderInput('baseAngle', 'baseAngleVal', 'baseAngle', false);
+        bindSliderInput('angleSpread', 'angleSpreadVal', 'angleSpread', false);
+        bindSliderInput('gravityX', 'gravityXVal', 'gravityX', false);
+        bindSliderInput('gravityY', 'gravityYVal', 'gravityY', false);
+        bindSliderInput('damping', 'dampingVal', 'damping', true);
+        bindSliderInput('initRotAngle', 'initRotAngleVal', 'initRotAngle', false);
+        bindSliderInput('initRotSpread', 'initRotSpreadVal', 'initRotSpread', false);
+        bindSliderInput('emitRadius', 'emitRadiusVal', 'emitRadius', false);
+        bindSliderInput('maxParticles', 'maxParticlesVal', 'maxParticles', false);
         
-        // 开始消失时间范围
-        const fadeStartMin = document.getElementById('fadeStartMin');
-        const fadeStartMinVal = document.getElementById('fadeStartMinVal');
-        if (fadeStartMin) {
-            fadeStartMin.addEventListener('input', () => {
-                params.fadeStartMin = parseFloat(fadeStartMin.value);
-                if (fadeStartMinVal) fadeStartMinVal.innerText = params.fadeStartMin.toFixed(1);
-            });
-            fadeStartMin.dispatchEvent(new Event('input'));
-        }
-        const fadeStartMax = document.getElementById('fadeStartMax');
-        const fadeStartMaxVal = document.getElementById('fadeStartMaxVal');
-        if (fadeStartMax) {
-            fadeStartMax.addEventListener('input', () => {
-                params.fadeStartMax = parseFloat(fadeStartMax.value);
-                if (fadeStartMaxVal) fadeStartMaxVal.innerText = params.fadeStartMax.toFixed(1);
-            });
-            fadeStartMax.dispatchEvent(new Event('input'));
-        }
-        
-        // 消失持续时间范围
-        const fadeDurationMin = document.getElementById('fadeDurationMin');
-        const fadeDurationMinVal = document.getElementById('fadeDurationMinVal');
-        if (fadeDurationMin) {
-            fadeDurationMin.addEventListener('input', () => {
-                params.fadeDurationMin = parseFloat(fadeDurationMin.value);
-                if (fadeDurationMinVal) fadeDurationMinVal.innerText = params.fadeDurationMin.toFixed(1);
-            });
-            fadeDurationMin.dispatchEvent(new Event('input'));
-        }
-        const fadeDurationMax = document.getElementById('fadeDurationMax');
-        const fadeDurationMaxVal = document.getElementById('fadeDurationMaxVal');
-        if (fadeDurationMax) {
-            fadeDurationMax.addEventListener('input', () => {
-                params.fadeDurationMax = parseFloat(fadeDurationMax.value);
-                if (fadeDurationMaxVal) fadeDurationMaxVal.innerText = params.fadeDurationMax.toFixed(1);
-            });
-            fadeDurationMax.dispatchEvent(new Event('input'));
-        }
-        
-        // 方向与旋转参数
-        const baseAngleSlider = document.getElementById('baseAngle');
-        const baseAngleVal = document.getElementById('baseAngleVal');
-        if (baseAngleSlider) {
-            baseAngleSlider.addEventListener('input', () => {
-                params.baseAngle = parseInt(baseAngleSlider.value);
-                if (baseAngleVal) baseAngleVal.innerText = params.baseAngle;
-            });
-            baseAngleSlider.dispatchEvent(new Event('input'));
-        }
-        
-        const angleSpreadSlider = document.getElementById('angleSpread');
-        const angleSpreadVal = document.getElementById('angleSpreadVal');
-        if (angleSpreadSlider) {
-            angleSpreadSlider.addEventListener('input', () => {
-                params.angleSpread = parseInt(angleSpreadSlider.value);
-                if (angleSpreadVal) angleSpreadVal.innerText = params.angleSpread;
-            });
-            angleSpreadSlider.dispatchEvent(new Event('input'));
-        }
-        
-        const initRotAngleSlider = document.getElementById('initRotAngle');
-        const initRotAngleVal = document.getElementById('initRotAngleVal');
-        if (initRotAngleSlider) {
-            initRotAngleSlider.addEventListener('input', () => {
-                params.initRotAngle = parseInt(initRotAngleSlider.value);
-                if (initRotAngleVal) initRotAngleVal.innerText = params.initRotAngle;
-            });
-            initRotAngleSlider.dispatchEvent(new Event('input'));
-        }
-        
-        const initRotSpreadSlider = document.getElementById('initRotSpread');
-        const initRotSpreadVal = document.getElementById('initRotSpreadVal');
-        if (initRotSpreadSlider) {
-            initRotSpreadSlider.addEventListener('input', () => {
-                params.initRotSpread = parseInt(initRotSpreadSlider.value);
-                if (initRotSpreadVal) initRotSpreadVal.innerText = params.initRotSpread;
-            });
-            initRotSpreadSlider.dispatchEvent(new Event('input'));
-        }
+        // 范围滑块绑定
+        bindRangeSliders('fadeStartMin', 'fadeStartMinVal', 'fadeStartMax', 'fadeStartMaxVal', 'fadeStartMin', 'fadeStartMax', true);
+        bindRangeSliders('fadeDurationMin', 'fadeDurationMinVal', 'fadeDurationMax', 'fadeDurationMaxVal', 'fadeDurationMin', 'fadeDurationMax', true);
+        bindRangeSliders('sizeMin', 'sizeMinVal', 'sizeMax', 'sizeMaxVal', 'sizeMin', 'sizeMax', false);
+        bindRangeSliders('speedMin', 'speedMinVal', 'speedMax', 'speedMaxVal', 'speedMin', 'speedMax', false);
+        bindRangeSliders('rotSpeedMin', 'rotSpeedMinVal', 'rotSpeedMax', 'rotSpeedMaxVal', 'rotSpeedMin', 'rotSpeedMax', true);
         
         // 背景色
         const bgPicker = document.getElementById('bgColorPicker');
@@ -349,13 +340,18 @@
         document.getElementById('pauseEmitBtn').addEventListener('click', () => { emitActive = false; });
         document.getElementById('resumeEmitBtn').addEventListener('click', () => { emitActive = true; });
         
+        // 纹理上传与文件名显示
         const textureUpload = document.getElementById('textureUpload');
+        const textureFileName = document.getElementById('textureFileName');
         textureUpload.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file && file.type.startsWith('image/')) {
                 const img = new Image();
                 img.onload = () => { textureImage = img; };
                 img.src = URL.createObjectURL(file);
+                textureFileName.innerText = file.name;
+            } else {
+                textureFileName.innerText = '未选择';
             }
         });
         document.getElementById('resetTextureBtn').addEventListener('click', createDefaultTexture);
