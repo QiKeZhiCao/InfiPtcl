@@ -1,0 +1,674 @@
+// particle.js - 最终修复版（重影、透明度、边界、双重渲染、导出卡帧）
+(function(){
+    const canvas = document.getElementById('particleCanvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let textureImage = null;
+    let emitterPos = { x: 0, y: 0 };
+    let followMouse = true;
+    let emitActive = true;
+    
+    let params = {
+        emitRate: 220,
+        fadeStartMin: 0.5,
+        fadeStartMax: 2.0,
+        fadeDurationMin: 0.3,
+        fadeDurationMax: 1.0,
+        sizeMin: 6,
+        sizeMax: 24,
+        speedMin: 80,
+        speedMax: 240,
+        baseAngle: 0,
+        angleSpread: 180,
+        gravityX: 0,
+        gravityY: 80,
+        damping: 0.99,
+        rotSpeedMin: -1.2,
+        rotSpeedMax: 1.8,
+        emitRadius: 5,
+        maxParticles: 3000,
+        backgroundColor: '#000000',
+        initRotAngle: 0,
+        initRotSpread: 0
+    };
+    
+    window._isContinuousMode = true;
+    
+    function randomRange(min, max) {
+        return min + Math.random() * (max - min);
+    }
+    
+    function updateParticleCount() {
+        const countSpan = document.getElementById('particleCount');
+        if (countSpan) countSpan.innerText = particles.length;
+    }
+    
+    function createDefaultTexture() {
+        const canvasTex = document.createElement('canvas');
+        const size = 64;
+        canvasTex.width = size;
+        canvasTex.height = size;
+        const tc = canvasTex.getContext('2d');
+        tc.clearRect(0, 0, size, size);
+        const center = size / 2;
+        const grad = tc.createRadialGradient(center, center, 0, center, center, center);
+        grad.addColorStop(0, 'rgba(220, 235, 255, 1)');
+        grad.addColorStop(0.6, 'rgba(100, 160, 220, 0.5)');
+        grad.addColorStop(1, 'rgba(50, 100, 150, 0)');
+        tc.beginPath();
+        tc.arc(center, center, center, 0, Math.PI * 2);
+        tc.fillStyle = grad;
+        tc.fill();
+        const img = new Image();
+        img.onload = () => { textureImage = img; };
+        img.src = canvasTex.toDataURL();
+    }
+    createDefaultTexture();
+    
+    // ========== 导出辅助函数（包含渲染） ==========
+    window._cloneParticleState = function() {
+        return {
+            particles: JSON.parse(JSON.stringify(particles)),
+            emitterPos: { ...emitterPos },
+            followMouse: followMouse,
+            emitActive: emitActive,
+            params: JSON.parse(JSON.stringify(params))
+        };
+    };
+    window._restoreParticleState = function(state) {
+        particles = state.particles;
+        emitterPos = state.emitterPos;
+        followMouse = state.followMouse;
+        emitActive = state.emitActive;
+        Object.assign(params, state.params);
+        updateParticleCount();
+    };
+    window._clearParticles = function() {
+        particles = [];
+        updateParticleCount();
+    };
+    window._stepSimulation = function(deltaSec) {
+        // 1. 清除画布（透明背景）
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 2. 物理模拟和粒子发射
+        const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
+        for (let i = particles.length-1; i >= 0; i--) {
+            const p = particles[i];
+            p.life -= deltaSec;
+            if (p.life <= 0) {
+                particles.splice(i,1);
+                continue;
+            }
+            p.vx += gx * deltaSec;
+            p.vy += gy * deltaSec;
+            p.vx *= damp;
+            p.vy *= damp;
+            p.x += p.vx * deltaSec;
+            p.y += p.vy * deltaSec;
+            p.rot += p.rotSpeed * deltaSec;
+            const alive = p.maxLife - p.life;
+            if (alive < p.fadeStart) {
+                p.alpha = 1.0;
+            } else {
+                const fadeElapsed = alive - p.fadeStart;
+                if (fadeElapsed >= p.fadeDuration) {
+                    p.alpha = 0;
+                } else {
+                    p.alpha = 1 - (fadeElapsed / p.fadeDuration);
+                }
+            }
+            if (p.alpha < 0) p.alpha = 0;
+            // 移除 alpha 下限，允许完全透明
+            
+            // 缩小粒子销毁边界
+            const outOffset = 20;
+            if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
+                p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
+                particles.splice(i,1);
+            }
+        }
+        updateParticleCount();
+        
+        // 连续发射
+        if (window._isContinuousMode && emitActive) {
+            let target = params.emitRate * deltaSec;
+            let count = Math.floor(target);
+            if (Math.random() < target - count) count++;
+            if (count) {
+                const ex = emitterPos.x, ey = emitterPos.y;
+                for (let i = 0; i < count; i++) {
+                    if (particles.length >= params.maxParticles) particles.shift();
+                    // 创建粒子逻辑（与 createSingleParticle 相同）
+                    const angleOffset = Math.random() * Math.PI * 2;
+                    const rad = randomRange(0, params.emitRadius);
+                    const px = ex + Math.cos(angleOffset) * rad;
+                    const py = ey + Math.sin(angleOffset) * rad;
+                    const baseRad = params.baseAngle * Math.PI / 180;
+                    const spreadRad = params.angleSpread * Math.PI / 180;
+                    let angleRad = baseRad;
+                    if (spreadRad > 0) {
+                        const offset = randomRange(-spreadRad, spreadRad);
+                        angleRad = baseRad + offset;
+                        angleRad = ((angleRad % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+                    }
+                    const speed = randomRange(params.speedMin, params.speedMax);
+                    const vx = Math.cos(angleRad) * speed;
+                    const vy = Math.sin(angleRad) * speed;
+                    const size = randomRange(params.sizeMin, params.sizeMax);
+                    const fadeStart = randomRange(params.fadeStartMin, params.fadeStartMax);
+                    const fadeDuration = randomRange(params.fadeDurationMin, params.fadeDurationMax);
+                    const maxLife = fadeStart + fadeDuration;
+                    const rotSpeed = randomRange(params.rotSpeedMin, params.rotSpeedMax);
+                    const baseRot = params.initRotAngle * Math.PI / 180;
+                    const spreadRot = params.initRotSpread * Math.PI / 180;
+                    let initRot = baseRot;
+                    if (spreadRot > 0) {
+                        const offset = randomRange(-spreadRot, spreadRot);
+                        initRot = baseRot + offset;
+                        initRot = ((initRot % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+                    }
+                    particles.push({
+                        x: px, y: py, vx, vy, size,
+                        life: maxLife,
+                        maxLife: maxLife,
+                        fadeStart: fadeStart,
+                        fadeDuration: fadeDuration,
+                        rot: initRot, rotSpeed, alpha: 1.0
+                    });
+                }
+                updateParticleCount();
+            }
+        }
+        
+        // 3. 渲染当前粒子（透明背景）
+        if (!textureImage) return;
+        for (let p of particles) {
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            const half = p.size / 2;
+            if (textureImage.complete) {
+                ctx.drawImage(textureImage, -half, -half, p.size, p.size);
+            } else {
+                ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(0, 0, half, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    };
+    // ========== 导出辅助函数结束 ==========
+    
+    // 以下为正常动画函数（与之前相同，但 setBackground 已优化）
+    function computeAngle() {
+        const baseRad = params.baseAngle * Math.PI / 180;
+        const spreadRad = params.angleSpread * Math.PI / 180;
+        if (spreadRad <= 0) return baseRad;
+        const offset = randomRange(-spreadRad, spreadRad);
+        let angle = baseRad + offset;
+        angle = ((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        return angle;
+    }
+    
+    function computeInitialRotation() {
+        const baseRot = params.initRotAngle * Math.PI / 180;
+        const spreadRot = params.initRotSpread * Math.PI / 180;
+        if (spreadRot <= 0) return baseRot;
+        const offset = randomRange(-spreadRot, spreadRot);
+        let rot = baseRot + offset;
+        rot = ((rot % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        return rot;
+    }
+    
+    function createSingleParticle(ex, ey) {
+        const angleOffset = Math.random() * Math.PI * 2;
+        const rad = randomRange(0, params.emitRadius);
+        const px = ex + Math.cos(angleOffset) * rad;
+        const py = ey + Math.sin(angleOffset) * rad;
+        const angleRad = computeAngle();
+        const speed = randomRange(params.speedMin, params.speedMax);
+        const vx = Math.cos(angleRad) * speed;
+        const vy = Math.sin(angleRad) * speed;
+        const size = randomRange(params.sizeMin, params.sizeMax);
+        const fadeStart = randomRange(params.fadeStartMin, params.fadeStartMax);
+        const fadeDuration = randomRange(params.fadeDurationMin, params.fadeDurationMax);
+        const maxLife = fadeStart + fadeDuration;
+        const rotSpeed = randomRange(params.rotSpeedMin, params.rotSpeedMax);
+        const initRot = computeInitialRotation();
+        return {
+            x: px, y: py, vx, vy, size,
+            life: maxLife,
+            maxLife: maxLife,
+            fadeStart: fadeStart,
+            fadeDuration: fadeDuration,
+            rot: initRot, rotSpeed, alpha: 1.0
+        };
+    }
+
+    window.burstEmit = function(count) {
+        if (!textureImage) return;
+        const ex = emitterPos.x, ey = emitterPos.y;
+        for (let i = 0; i < count; i++) {
+            if (particles.length >= params.maxParticles) particles.shift();
+            particles.push(createSingleParticle(ex, ey));
+        }
+        updateParticleCount();
+    };
+    
+    function emitContinuous(deltaSec) {
+        if (!window._isContinuousMode || !emitActive) return;
+        let target = params.emitRate * deltaSec;
+        let count = Math.floor(target);
+        if (Math.random() < target - count) count++;
+        if (count) window.burstEmit(count);
+    }
+    
+    function updatePhysics(deltaSec) {
+        const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
+        for (let i = particles.length-1; i >= 0; i--) {
+            const p = particles[i];
+            p.life -= deltaSec;
+            if (p.life <= 0) {
+                particles.splice(i,1);
+                continue;
+            }
+            p.vx += gx * deltaSec;
+            p.vy += gy * deltaSec;
+            p.vx *= damp;
+            p.vy *= damp;
+            p.x += p.vx * deltaSec;
+            p.y += p.vy * deltaSec;
+            p.rot += p.rotSpeed * deltaSec;
+            const alive = p.maxLife - p.life;
+            if (alive < p.fadeStart) {
+                p.alpha = 1.0;
+            } else {
+                const fadeElapsed = alive - p.fadeStart;
+                if (fadeElapsed >= p.fadeDuration) {
+                    p.alpha = 0;
+                } else {
+                    p.alpha = 1 - (fadeElapsed / p.fadeDuration);
+                }
+            }
+            if (p.alpha < 0) p.alpha = 0;
+            const outOffset = 20;
+            if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
+                p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
+                particles.splice(i,1);
+            }
+        }
+        updateParticleCount();
+    }
+    
+    function render() {
+        if (!textureImage) return;
+        for (let p of particles) {
+            ctx.save();
+            ctx.globalAlpha = p.alpha;
+            ctx.translate(p.x, p.y);
+            ctx.rotate(p.rot);
+            const half = p.size / 2;
+            if (textureImage.complete) {
+                ctx.drawImage(textureImage, -half, -half, p.size, p.size);
+            } else {
+                ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(0, 0, half, 0, Math.PI*2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+    }
+    
+    function drawEmitter() {
+        if (window._exporting) return;
+        ctx.save();
+        ctx.strokeStyle = '#ffdd99';
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(emitterPos.x-14, emitterPos.y);
+        ctx.lineTo(emitterPos.x+14, emitterPos.y);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(emitterPos.x, emitterPos.y-14);
+        ctx.lineTo(emitterPos.x, emitterPos.y+14);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(emitterPos.x, emitterPos.y, 8, 0, Math.PI*2);
+        ctx.strokeStyle = '#ffaa66';
+        ctx.stroke();
+        ctx.fillStyle = '#ffbb77aa';
+        ctx.arc(emitterPos.x, emitterPos.y, 5, 0, Math.PI*2);
+        ctx.fill();
+        ctx.restore();
+    }
+    
+    function setBackground() {
+        // 先清空画布，再绘制背景（非导出模式）
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (!window._exporting) {
+            ctx.fillStyle = params.backgroundColor;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+    }
+    
+    function setParticleSizeFromImage(img) {
+        const maxDim = Math.max(img.width, img.height);
+        let newMin = Math.min(80, Math.max(8, Math.floor(maxDim * 0.5)));
+        let newMax = Math.min(120, Math.max(16, Math.floor(maxDim * 1.2)));
+        if (newMin > newMax) newMin = newMax;
+        params.sizeMin = newMin;
+        params.sizeMax = newMax;
+        const sizeMinSlider = document.getElementById('sizeMin');
+        const sizeMinVal = document.getElementById('sizeMinVal');
+        const sizeMaxSlider = document.getElementById('sizeMax');
+        const sizeMaxVal = document.getElementById('sizeMaxVal');
+        if (sizeMinSlider) sizeMinSlider.value = newMin;
+        if (sizeMinVal) sizeMinVal.value = newMin;
+        if (sizeMaxSlider) sizeMaxSlider.value = newMax;
+        if (sizeMaxVal) sizeMaxVal.value = newMax;
+    }
+    
+    function bindUI() {
+        const mappings = [
+            ['emitRate', 'emitRate', false],
+            ['sizeMin', 'sizeMin', false],
+            ['sizeMax', 'sizeMax', false],
+            ['speedMin', 'speedMin', false],
+            ['speedMax', 'speedMax', false],
+            ['gravityX', 'gravityX', false],
+            ['gravityY', 'gravityY', false],
+            ['damping', 'damping', true],
+            ['rotSpeedMin', 'rotSpeedMin', true],
+            ['rotSpeedMax', 'rotSpeedMax', true],
+            ['emitRadius', 'emitRadius', false],
+            ['maxParticles', 'maxParticles', false]
+        ];
+        for (let [id, prop, isFloat] of mappings) {
+            const slider = document.getElementById(id);
+            const span = document.getElementById(id + 'Val');
+            if (!slider) continue;
+            const update = () => {
+                let val = isFloat ? parseFloat(slider.value) : parseInt(slider.value);
+                params[prop] = val;
+                if (span) span.value = isFloat ? val.toFixed(2) : val;
+            };
+            slider.addEventListener('input', update);
+            update();
+        }
+        
+        function bindRange(minId, maxId, paramMin, paramMax, isFloat, step) {
+            const minSlider = document.getElementById(minId);
+            const maxSlider = document.getElementById(maxId);
+            const minSpan = document.getElementById(minId + 'Val');
+            const maxSpan = document.getElementById(maxId + 'Val');
+            if (!minSlider || !maxSlider) return;
+            const update = () => {
+                let minVal = isFloat ? parseFloat(minSlider.value) : parseInt(minSlider.value);
+                let maxVal = isFloat ? parseFloat(maxSlider.value) : parseInt(maxSlider.value);
+                params[paramMin] = minVal;
+                params[paramMax] = maxVal;
+                if (minSpan) minSpan.value = minVal;
+                if (maxSpan) maxSpan.value = maxVal;
+                if (minVal > maxVal) {
+                    maxSlider.value = minVal;
+                    params[paramMax] = minVal;
+                    if (maxSpan) maxSpan.value = minVal;
+                }
+            };
+            minSlider.addEventListener('input', update);
+            maxSlider.addEventListener('input', update);
+            if (minSpan) minSpan.addEventListener('change', () => {
+                let v = isFloat ? parseFloat(minSpan.value) : parseInt(minSpan.value);
+                if (isNaN(v)) return;
+                v = Math.min(parseFloat(minSlider.max), Math.max(parseFloat(minSlider.min), v));
+                minSlider.value = v;
+                update();
+            });
+            if (maxSpan) maxSpan.addEventListener('change', () => {
+                let v = isFloat ? parseFloat(maxSpan.value) : parseInt(maxSpan.value);
+                if (isNaN(v)) return;
+                v = Math.min(parseFloat(maxSlider.max), Math.max(parseFloat(maxSlider.min), v));
+                maxSlider.value = v;
+                update();
+            });
+            update();
+        }
+        
+        bindRange('fadeStartMin', 'fadeStartMax', 'fadeStartMin', 'fadeStartMax', true, 0.1);
+        bindRange('fadeDurationMin', 'fadeDurationMax', 'fadeDurationMin', 'fadeDurationMax', true, 0.1);
+        bindRange('sizeMin', 'sizeMax', 'sizeMin', 'sizeMax', false, 1);
+        bindRange('speedMin', 'speedMax', 'speedMin', 'speedMax', false, 5);
+        bindRange('rotSpeedMin', 'rotSpeedMax', 'rotSpeedMin', 'rotSpeedMax', true, 0.1);
+        
+        const baseAngleSlider = document.getElementById('baseAngle');
+        const baseAngleVal = document.getElementById('baseAngleVal');
+        if (baseAngleSlider) {
+            baseAngleSlider.addEventListener('input', () => {
+                params.baseAngle = parseInt(baseAngleSlider.value);
+                if (baseAngleVal) baseAngleVal.value = params.baseAngle;
+            });
+            baseAngleSlider.dispatchEvent(new Event('input'));
+        }
+        if (baseAngleVal) {
+            baseAngleVal.addEventListener('change', () => {
+                let v = parseInt(baseAngleVal.value);
+                v = Math.min(360, Math.max(0, v));
+                baseAngleSlider.value = v;
+                params.baseAngle = v;
+            });
+        }
+        
+        const angleSpreadSlider = document.getElementById('angleSpread');
+        const angleSpreadVal = document.getElementById('angleSpreadVal');
+        if (angleSpreadSlider) {
+            angleSpreadSlider.addEventListener('input', () => {
+                params.angleSpread = parseInt(angleSpreadSlider.value);
+                if (angleSpreadVal) angleSpreadVal.value = params.angleSpread;
+            });
+            angleSpreadSlider.dispatchEvent(new Event('input'));
+        }
+        if (angleSpreadVal) {
+            angleSpreadVal.addEventListener('change', () => {
+                let v = parseInt(angleSpreadVal.value);
+                v = Math.min(180, Math.max(0, v));
+                angleSpreadSlider.value = v;
+                params.angleSpread = v;
+            });
+        }
+        
+        const initRotAngleSlider = document.getElementById('initRotAngle');
+        const initRotAngleVal = document.getElementById('initRotAngleVal');
+        if (initRotAngleSlider) {
+            initRotAngleSlider.addEventListener('input', () => {
+                params.initRotAngle = parseInt(initRotAngleSlider.value);
+                if (initRotAngleVal) initRotAngleVal.value = params.initRotAngle;
+            });
+            initRotAngleSlider.dispatchEvent(new Event('input'));
+        }
+        if (initRotAngleVal) {
+            initRotAngleVal.addEventListener('change', () => {
+                let v = parseInt(initRotAngleVal.value);
+                v = Math.min(360, Math.max(0, v));
+                initRotAngleSlider.value = v;
+                params.initRotAngle = v;
+            });
+        }
+        
+        const initRotSpreadSlider = document.getElementById('initRotSpread');
+        const initRotSpreadVal = document.getElementById('initRotSpreadVal');
+        if (initRotSpreadSlider) {
+            initRotSpreadSlider.addEventListener('input', () => {
+                params.initRotSpread = parseInt(initRotSpreadSlider.value);
+                if (initRotSpreadVal) initRotSpreadVal.value = params.initRotSpread;
+            });
+            initRotSpreadSlider.dispatchEvent(new Event('input'));
+        }
+        if (initRotSpreadVal) {
+            initRotSpreadVal.addEventListener('change', () => {
+                let v = parseInt(initRotSpreadVal.value);
+                v = Math.min(180, Math.max(0, v));
+                initRotSpreadSlider.value = v;
+                params.initRotSpread = v;
+            });
+        }
+        
+        const bgPicker = document.getElementById('bgColorPicker');
+        const bgPreview = document.getElementById('bgPreview');
+        bgPicker.addEventListener('input', (e) => {
+            params.backgroundColor = e.target.value;
+            bgPreview.style.backgroundColor = params.backgroundColor;
+        });
+        
+        const followBtn = document.getElementById('followMouseBtn');
+        const fixedBtn = document.getElementById('fixedModeBtn');
+        if (followBtn) {
+            followBtn.addEventListener('click', () => {
+                followMouse = true;
+                followBtn.style.background = '#5a5e8a';
+                if (fixedBtn) fixedBtn.style.background = '#2c2f42';
+            });
+        }
+        if (fixedBtn) {
+            fixedBtn.addEventListener('click', () => {
+                followMouse = false;
+                fixedBtn.style.background = '#5a5e8a';
+                if (followBtn) followBtn.style.background = '#2c2f42';
+            });
+        }
+        
+        const clearBtn = document.getElementById('clearBtn');
+        if (clearBtn) clearBtn.addEventListener('click', () => {
+            particles = [];
+            updateParticleCount();
+        });
+        const pauseBtn = document.getElementById('pauseEmitBtn');
+        const resumeBtn = document.getElementById('resumeEmitBtn');
+        if (pauseBtn) pauseBtn.addEventListener('click', () => { emitActive = false; });
+        if (resumeBtn) resumeBtn.addEventListener('click', () => { emitActive = true; });
+        
+        const resetCheckbox = document.getElementById('resetOnContinuous');
+        if (resetCheckbox) {
+            resetCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    if (clearBtn) clearBtn.click();
+                    e.target.checked = false;
+                }
+            });
+        }
+        
+        const textureUpload = document.getElementById('textureUpload');
+        const textureFileName = document.getElementById('textureFileName');
+        if (textureUpload) {
+            textureUpload.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type.startsWith('image/')) {
+                    const img = new Image();
+                    img.onload = () => {
+                        textureImage = img;
+                        setParticleSizeFromImage(img);
+                    };
+                    img.src = URL.createObjectURL(file);
+                    if (textureFileName) textureFileName.innerText = file.name;
+                } else {
+                    if (textureFileName) textureFileName.innerText = '未选择';
+                }
+            });
+        }
+        const resetTextureBtn = document.getElementById('resetTextureBtn');
+        if (resetTextureBtn) resetTextureBtn.addEventListener('click', createDefaultTexture);
+    }
+    
+    function resizeCanvas() {
+        const container = canvas.parentElement;
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        if (!followMouse) {
+            emitterPos.x = Math.min(Math.max(emitterPos.x, 15), canvas.width-15);
+            emitterPos.y = Math.min(Math.max(emitterPos.y, 15), canvas.height-15);
+        } else if (emitterPos.x === 0 && emitterPos.y === 0) {
+            emitterPos.x = canvas.width/2;
+            emitterPos.y = canvas.height/2;
+        }
+        const coordSpan = document.getElementById('emitterCoord');
+        if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+    }
+    
+    function initEvents() {
+        const updateFromMouse = (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const sx = canvas.width / rect.width;
+            const sy = canvas.height / rect.height;
+            let cx, cy;
+            if (e.touches) {
+                cx = e.touches[0].clientX;
+                cy = e.touches[0].clientY;
+            } else {
+                cx = e.clientX;
+                cy = e.clientY;
+            }
+            let mx = (cx - rect.left) * sx;
+            let my = (cy - rect.top) * sy;
+            mx = Math.min(Math.max(mx, 0), canvas.width);
+            my = Math.min(Math.max(my, 0), canvas.height);
+            if (followMouse) {
+                emitterPos.x = mx;
+                emitterPos.y = my;
+            }
+            const coordSpan = document.getElementById('emitterCoord');
+            if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+        };
+        const setFixed = (e) => {
+            if (!followMouse) {
+                const rect = canvas.getBoundingClientRect();
+                const sx = canvas.width / rect.width;
+                const sy = canvas.height / rect.height;
+                let cx, cy;
+                if (e.touches) {
+                    cx = e.touches[0].clientX;
+                    cy = e.touches[0].clientY;
+                } else {
+                    cx = e.clientX;
+                    cy = e.clientY;
+                }
+                let mx = (cx - rect.left) * sx;
+                let my = (cy - rect.top) * sy;
+                mx = Math.min(Math.max(mx, 0), canvas.width);
+                my = Math.min(Math.max(my, 0), canvas.height);
+                emitterPos.x = mx;
+                emitterPos.y = my;
+                const coordSpan = document.getElementById('emitterCoord');
+                if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+            }
+        };
+        canvas.addEventListener('mousemove', updateFromMouse);
+        canvas.addEventListener('click', setFixed);
+        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); updateFromMouse(e); }, { passive: false });
+        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); updateFromMouse(e); setFixed(e); }, { passive: false });
+        window.addEventListener('resize', resizeCanvas);
+    }
+    
+    let prevTime = 0;
+    function animate(nowMs) {
+        requestAnimationFrame(animate);
+        if (window._exporting) return;
+        if (!prevTime) { prevTime = nowMs; return; }
+        let delta = Math.min(0.033, (nowMs - prevTime) / 1000);
+        if (delta <= 0) { prevTime = nowMs; return; }
+        prevTime = nowMs;
+        updatePhysics(delta);
+        emitContinuous(delta);
+        setBackground();
+        render();
+        drawEmitter();
+        if (window._onSequenceUpdate) window._onSequenceUpdate(nowMs / 1000);
+    }
+    
+    resizeCanvas();
+    bindUI();
+    initEvents();
+    requestAnimationFrame(animate);
+})();
