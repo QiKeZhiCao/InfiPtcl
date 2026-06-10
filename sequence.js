@@ -1,4 +1,4 @@
-// sequence.js - 最终版（含横线显示/隐藏，上传MIDI重置进度）
+// sequence.js - 最终版，整合横线控制、MIDI导入重置等
 (function(){
     let loopSeqCheckbox = document.getElementById('loopSeqCheckbox');
     if (!loopSeqCheckbox) {

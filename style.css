@@ -2,6 +2,7 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-user-select: none;
     user-select: none;
 }
 
@@ -17,6 +18,7 @@ body {
 
 .toolbar {
     background: rgba(18, 20, 28, 0.96);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     padding: 10px 20px;
     display: flex;
@@ -61,7 +63,6 @@ input, select, button {
     font-family: inherit;
 }
 
-/* 数值输入框：统一字体，鼠标悬停显示文本光标 */
 input[type="number"],
 input[type="text"],
 .time-input,
@@ -94,7 +95,6 @@ button:hover {
     border: 2px solid #ffdd99;
     cursor: pointer;
     margin-left: 6px;
-    background: #000000;
 }
 
 .stat {
@@ -144,6 +144,7 @@ canvas {
     overflow-y: auto;
     overflow-x: hidden;
     background: rgba(12, 14, 24, 0.96);
+    -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border-radius: 24px;
     padding: 16px;
@@ -152,8 +153,23 @@ canvas {
     box-shadow: 0 12px 30px rgba(0,0,0,0.8);
     z-index: 20;
     font-size: 12px;
-    scrollbar-width: thin;
-    scrollbar-color: #ffaa66 #2a2e3c;
+}
+
+/* WebKit滚动条样式（支持Chrome/Safari/Edge） */
+.control-panel::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.control-panel::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 10px;
+}
+.control-panel::-webkit-scrollbar-thumb {
+    background: #ffaa66;
+    border-radius: 10px;
+}
+.control-panel::-webkit-scrollbar-thumb:hover {
+    background: #ffcc88;
 }
 
 .resize-handle {
@@ -172,24 +188,9 @@ canvas {
 }
 
 body.resizing {
+    -webkit-user-select: none;
     user-select: none;
     cursor: ew-resize;
-}
-
-.control-panel::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.control-panel::-webkit-scrollbar-track {
-    background: #2a2e3c;
-    border-radius: 10px;
-}
-.control-panel::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
-}
-.control-panel::-webkit-scrollbar-thumb:hover {
-    background: #ffcc88;
 }
 
 .control-panel h4 {
@@ -217,7 +218,6 @@ body.resizing {
     flex-shrink: 0;
 }
 
-/* 范围参数容器 */
 .range-controls {
     display: flex;
     align-items: center;
@@ -237,16 +237,15 @@ body.resizing {
 }
 .range-sep {
     flex-shrink: 0;
-    color: #ffdd99;
+    color: #ffffff;
     margin: 0 2px;
 }
 .range-unit {
     flex-shrink: 0;
-    color: #ffffff; /* 单位统一白色 */
+    color: #ffffff;
     margin-left: 2px;
 }
 
-/* 单滑块行的数值 */
 .param-row > .range-value,
 .time-input {
     width: 65px;
@@ -260,7 +259,6 @@ body.resizing {
     min-width: 60px;
 }
 
-/* 文件控件容器：文件名右对齐，按钮靠右 */
 .file-controls {
     display: flex;
     align-items: center;
@@ -285,33 +283,12 @@ body.resizing {
     white-space: nowrap;
     font-size: 12px;
 }
-/* 统一按钮样式（包括“使用默认”） */
-.btn-secondary,
-button:not(.mode-btn):not(.play-pause-btn) {
+.small-btn {
     background: #2c3e5a;
-    border: 1px solid #6a6f9a;
-    border-radius: 28px;
-    padding: 4px 12px;
-    font-size: 12px;
-    cursor: pointer;
-    transition: 0.2s;
-    font-weight: 500;
-    color: white;
-}
-.btn-secondary:hover,
-button:not(.mode-btn):not(.play-pause-btn):hover {
-    background: #4a4e72;
-    border-color: #ffc285;
+    padding: 4px 10px;
+    font-size: 11px;
 }
 
-/* 单位符号统一白色 */
-.unit-symbol {
-    color: #ffffff;
-    margin-left: 2px;
-    flex-shrink: 0;
-}
-
-/* 统一滑块样式 */
 .control-panel input[type="range"],
 .range-controls input[type="range"] {
     flex: 1;
@@ -363,7 +340,6 @@ button:not(.mode-btn):not(.play-pause-btn):hover {
     font-weight: 500;
 }
 
-/* 隐藏数字输入框的上下箭头 */
 input[type="number"] {
     -moz-appearance: textfield;
     appearance: textfield;
@@ -438,13 +414,13 @@ textarea {
     }
 }
 
-/* 底部播放进度条 */
 .playback-bar-container {
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
     background: rgba(0, 0, 0, 0.85);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border-top: 1px solid rgba(255, 200, 100, 0.4);
     padding: 10px 10px;
