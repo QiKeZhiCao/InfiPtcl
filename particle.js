@@ -1,4 +1,4 @@
-// particle.js - 最终修复版（重影、透明度、边界、双重渲染、导出卡帧）
+// particle.js - 最终修复版（包含坐标半角括号+空格，背景色点击预览）
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
@@ -88,10 +88,7 @@
         updateParticleCount();
     };
     window._stepSimulation = function(deltaSec) {
-        // 1. 清除画布（透明背景）
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 2. 物理模拟和粒子发射
         const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
         for (let i = particles.length-1; i >= 0; i--) {
             const p = particles[i];
@@ -119,9 +116,6 @@
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
-            // 移除 alpha 下限，允许完全透明
-            
-            // 缩小粒子销毁边界
             const outOffset = 20;
             if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
                 p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
@@ -129,8 +123,6 @@
             }
         }
         updateParticleCount();
-        
-        // 连续发射
         if (window._isContinuousMode && emitActive) {
             let target = params.emitRate * deltaSec;
             let count = Math.floor(target);
@@ -139,7 +131,6 @@
                 const ex = emitterPos.x, ey = emitterPos.y;
                 for (let i = 0; i < count; i++) {
                     if (particles.length >= params.maxParticles) particles.shift();
-                    // 创建粒子逻辑（与 createSingleParticle 相同）
                     const angleOffset = Math.random() * Math.PI * 2;
                     const rad = randomRange(0, params.emitRadius);
                     const px = ex + Math.cos(angleOffset) * rad;
@@ -180,8 +171,6 @@
                 updateParticleCount();
             }
         }
-        
-        // 3. 渲染当前粒子（透明背景）
         if (!textureImage) return;
         for (let p of particles) {
             ctx.save();
@@ -202,7 +191,6 @@
     };
     // ========== 导出辅助函数结束 ==========
     
-    // 以下为正常动画函数（与之前相同，但 setBackground 已优化）
     function computeAngle() {
         const baseRad = params.baseAngle * Math.PI / 180;
         const spreadRad = params.angleSpread * Math.PI / 180;
@@ -347,7 +335,6 @@
     }
     
     function setBackground() {
-        // 先清空画布，再绘制背景（非导出模式）
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         if (!window._exporting) {
             ctx.fillStyle = params.backgroundColor;
@@ -382,8 +369,6 @@
             ['gravityX', 'gravityX', false],
             ['gravityY', 'gravityY', false],
             ['damping', 'damping', true],
-            ['rotSpeedMin', 'rotSpeedMin', true],
-            ['rotSpeedMax', 'rotSpeedMax', true],
             ['emitRadius', 'emitRadius', false],
             ['maxParticles', 'maxParticles', false]
         ];
@@ -442,7 +427,45 @@
         bindRange('fadeDurationMin', 'fadeDurationMax', 'fadeDurationMin', 'fadeDurationMax', true, 0.1);
         bindRange('sizeMin', 'sizeMax', 'sizeMin', 'sizeMax', false, 1);
         bindRange('speedMin', 'speedMax', 'speedMin', 'speedMax', false, 5);
-        bindRange('rotSpeedMin', 'rotSpeedMax', 'rotSpeedMin', 'rotSpeedMax', true, 0.1);
+        
+        const rotSpeedMinSlider = document.getElementById('rotSpeedMin');
+        const rotSpeedMaxSlider = document.getElementById('rotSpeedMax');
+        const rotSpeedMinVal = document.getElementById('rotSpeedMinVal');
+        const rotSpeedMaxVal = document.getElementById('rotSpeedMaxVal');
+        if (rotSpeedMinSlider && rotSpeedMaxSlider) {
+            const updateRotSpeed = () => {
+                let minDeg = parseInt(rotSpeedMinSlider.value);
+                let maxDeg = parseInt(rotSpeedMaxSlider.value);
+                params.rotSpeedMin = minDeg * Math.PI / 180;
+                params.rotSpeedMax = maxDeg * Math.PI / 180;
+                if (rotSpeedMinVal) rotSpeedMinVal.value = minDeg;
+                if (rotSpeedMaxVal) rotSpeedMaxVal.value = maxDeg;
+                if (minDeg > maxDeg) {
+                    rotSpeedMaxSlider.value = minDeg;
+                    params.rotSpeedMax = minDeg * Math.PI / 180;
+                    if (rotSpeedMaxVal) rotSpeedMaxVal.value = minDeg;
+                }
+            };
+            rotSpeedMinSlider.addEventListener('input', updateRotSpeed);
+            rotSpeedMaxSlider.addEventListener('input', updateRotSpeed);
+            if (rotSpeedMinVal) {
+                rotSpeedMinVal.addEventListener('change', () => {
+                    let v = parseInt(rotSpeedMinVal.value);
+                    v = Math.min(parseInt(rotSpeedMinSlider.max), Math.max(parseInt(rotSpeedMinSlider.min), v));
+                    rotSpeedMinSlider.value = v;
+                    updateRotSpeed();
+                });
+            }
+            if (rotSpeedMaxVal) {
+                rotSpeedMaxVal.addEventListener('change', () => {
+                    let v = parseInt(rotSpeedMaxVal.value);
+                    v = Math.min(parseInt(rotSpeedMaxSlider.max), Math.max(parseInt(rotSpeedMaxSlider.min), v));
+                    rotSpeedMaxSlider.value = v;
+                    updateRotSpeed();
+                });
+            }
+            updateRotSpeed();
+        }
         
         const baseAngleSlider = document.getElementById('baseAngle');
         const baseAngleVal = document.getElementById('baseAngleVal');
@@ -516,28 +539,41 @@
             });
         }
         
+        // 背景色选择器（点击预览触发）
         const bgPicker = document.getElementById('bgColorPicker');
         const bgPreview = document.getElementById('bgPreview');
-        bgPicker.addEventListener('input', (e) => {
-            params.backgroundColor = e.target.value;
-            bgPreview.style.backgroundColor = params.backgroundColor;
-        });
+        if (bgPicker && bgPreview) {
+            bgPreview.addEventListener('click', () => bgPicker.click());
+            bgPicker.addEventListener('input', (e) => {
+                params.backgroundColor = e.target.value;
+                bgPreview.style.backgroundColor = params.backgroundColor;
+            });
+        }
         
         const followBtn = document.getElementById('followMouseBtn');
         const fixedBtn = document.getElementById('fixedModeBtn');
-        if (followBtn) {
+        const centerBtn = document.getElementById('centerPointBtn');
+        if (followBtn && fixedBtn) {
             followBtn.addEventListener('click', () => {
                 followMouse = true;
                 followBtn.style.background = '#5a5e8a';
-                if (fixedBtn) fixedBtn.style.background = '#2c2f42';
+                fixedBtn.style.background = '#2c2f42';
+                if (centerBtn) centerBtn.style.display = 'none';
             });
-        }
-        if (fixedBtn) {
             fixedBtn.addEventListener('click', () => {
                 followMouse = false;
                 fixedBtn.style.background = '#5a5e8a';
-                if (followBtn) followBtn.style.background = '#2c2f42';
+                followBtn.style.background = '#2c2f42';
+                if (centerBtn) centerBtn.style.display = 'inline-block';
             });
+            if (centerBtn) {
+                centerBtn.style.display = followMouse ? 'none' : 'inline-block';
+                centerBtn.addEventListener('click', () => {
+                    emitterPos.x = canvas.width / 2;
+                    emitterPos.y = canvas.height / 2;
+                    document.getElementById('emitterCoord').innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
+                });
+            }
         }
         
         const clearBtn = document.getElementById('clearBtn');
@@ -545,10 +581,6 @@
             particles = [];
             updateParticleCount();
         });
-        const pauseBtn = document.getElementById('pauseEmitBtn');
-        const resumeBtn = document.getElementById('resumeEmitBtn');
-        if (pauseBtn) pauseBtn.addEventListener('click', () => { emitActive = false; });
-        if (resumeBtn) resumeBtn.addEventListener('click', () => { emitActive = true; });
         
         const resetCheckbox = document.getElementById('resetOnContinuous');
         if (resetCheckbox) {
@@ -594,7 +626,7 @@
             emitterPos.y = canvas.height/2;
         }
         const coordSpan = document.getElementById('emitterCoord');
-        if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+        if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
     }
     
     function initEvents() {
@@ -619,7 +651,7 @@
                 emitterPos.y = my;
             }
             const coordSpan = document.getElementById('emitterCoord');
-            if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+            if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
         };
         const setFixed = (e) => {
             if (!followMouse) {
@@ -641,7 +673,7 @@
                 emitterPos.x = mx;
                 emitterPos.y = my;
                 const coordSpan = document.getElementById('emitterCoord');
-                if (coordSpan) coordSpan.innerText = `（${Math.floor(emitterPos.x)},${Math.floor(emitterPos.y)}）`;
+                if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
             }
         };
         canvas.addEventListener('mousemove', updateFromMouse);

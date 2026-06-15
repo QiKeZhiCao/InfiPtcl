@@ -1,22 +1,15 @@
-// resize.js - 控制面板左边缘拖拽调整宽度
+// resize.js - 内部手柄拖拽调整宽度（手柄不随滚动条移动）
 (function() {
     const panel = document.querySelector('.control-panel');
-    if (!panel) return;
-
-    let handle = document.querySelector('.resize-handle');
-    if (!handle) {
-        handle = document.createElement('div');
-        handle.className = 'resize-handle';
-        panel.style.position = 'relative';
-        panel.appendChild(handle);
-    }
+    const handle = document.querySelector('.resize-handle');
+    if (!panel || !handle) return;
 
     let startX, startWidth;
 
     function onMouseMove(e) {
         const dx = e.clientX - startX;
-        let newWidth = startWidth - dx;
-        newWidth = Math.min(500, Math.max(260, newWidth));
+        let newWidth = startWidth - dx; // 右边缘固定，左边缘移动
+        newWidth = Math.min(500, Math.max(320, newWidth));
         panel.style.width = newWidth + 'px';
     }
 
