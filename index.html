@@ -12,22 +12,23 @@
     <div class="title">✨ 粒子发射器 · MIDI驱动序列 ✨</div>
     <div class="tool-group">
         <span>🎨 背景色</span>
-        <input type="color" id="bgColorPicker" value="#000000" aria-label="背景颜色选择器">
-        <div id="bgPreview" class="color-preview"></div>
+        <div class="color-picker-wrapper">
+            <div id="bgPreview" class="color-preview" style="background: #000000;"></div>
+            <input type="color" id="bgColorPicker" style="display: none;">
+        </div>
     </div>
     <div class="tool-group">
         <span>📍 发射模式</span>
         <button id="followMouseBtn" class="mode-btn-active" aria-label="跟随鼠标模式">🖱️ 跟随鼠标</button>
         <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">📌 固定点</button>
+        <button id="centerPointBtn" class="mode-btn" style="display: none;">🎯 中心点</button>
         <span id="emitterCoord" class="stat"></span>
     </div>
     <div class="tool-group">
         <button id="clearBtn" aria-label="清除所有粒子">🧹 清除粒子</button>
-        <button id="pauseEmitBtn" aria-label="暂停连续发射">⏸️ 暂停连续</button>
-        <button id="resumeEmitBtn" aria-label="开始连续发射">▶️ 开始连续</button>
-    </div>
-    <div class="stat">
-        💠 粒子: <span id="particleCount">0</span>
+        <div class="stat" style="border-left: none; background: transparent; padding: 0; margin-left: 8px;">
+            💠 粒子: <span id="particleCount" class="particle-count">0</span>
+        </div>
     </div>
 </div>
 
@@ -49,9 +50,7 @@
 
 <!-- 右侧控制面板 -->
 <div class="control-panel">
-    <!-- 独立手柄，不随滚动移动 -->
     <div class="resize-handle" title="拖拽调整宽度"></div>
-    <!-- 可滚动的内容区域 -->
     <div class="panel-content">
         <div class="mode-switch" id="modeSwitch">
             <button id="continuousModeBtn" class="mode-btn mode-active" aria-label="切换到连续发射模式">🎛️ 连续发射模式</button>
@@ -60,9 +59,10 @@
 
         <h4>⚙️ 粒子核心参数</h4>
         <div class="param-row">
-            <span>📈 发射速率/秒</span>
+            <span>📈 发射速率</span>
             <input type="range" id="emitRate" min="10" max="800" step="5" value="220" aria-label="发射速率滑块">
             <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值">
+            <span class="range-unit">个/s</span>
         </div>
 
         <div class="param-row">
@@ -127,15 +127,17 @@
 
         <h4>🌪️ 场域 & 旋转</h4>
         <div class="param-row">
-            <span>🌍 重力 X</span>
-            <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0" aria-label="X轴重力滑块">
-            <input type="number" id="gravityXVal" class="range-value" step="5" value="0" aria-label="X轴重力数值">
+            <span>🌍 X 轴加速度</span>
+            <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0" aria-label="X轴加速度滑块">
+            <input type="number" id="gravityXVal" class="range-value" step="5" value="0" aria-label="X轴加速度数值">
+            <span class="range-unit">px/s²</span>
         </div>
 
         <div class="param-row">
-            <span>🌍 重力 Y</span>
-            <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80" aria-label="Y轴重力滑块">
-            <input type="number" id="gravityYVal" class="range-value" step="5" value="80" aria-label="Y轴重力数值">
+            <span>🌍 Y 轴加速度</span>
+            <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80" aria-label="Y轴加速度滑块">
+            <input type="number" id="gravityYVal" class="range-value" step="5" value="80" aria-label="Y轴加速度数值">
+            <span class="range-unit">px/s²</span>
         </div>
 
         <div class="param-row">
@@ -159,12 +161,12 @@
         <div class="param-row">
             <span>🎡 旋转速度范围</span>
             <div class="range-controls">
-                <input type="number" id="rotSpeedMinVal" class="range-value" step="0.1" value="-1.2" aria-label="旋转速度最小值">
-                <input type="range" id="rotSpeedMin" min="-3.5" max="3.5" step="0.1" value="-1.2" aria-label="旋转速度最小值滑块">
+                <input type="number" id="rotSpeedMinVal" class="range-value" step="1" value="-200">
+                <input type="range" id="rotSpeedMin" min="-200" max="200" step="1" value="-200" aria-label="旋转速度最小值滑块">
                 <span class="range-sep">~</span>
-                <input type="range" id="rotSpeedMax" min="-3.5" max="3.5" step="0.1" value="1.8" aria-label="旋转速度最大值滑块">
-                <input type="number" id="rotSpeedMaxVal" class="range-value" step="0.1" value="1.8" aria-label="旋转速度最大值">
-                <span class="range-unit">rad/s</span>
+                <input type="range" id="rotSpeedMax" min="-200" max="200" step="1" value="200" aria-label="旋转速度最大值滑块">
+                <input type="number" id="rotSpeedMaxVal" class="range-value" step="1" value="200">
+                <span class="range-unit">°/s</span>
             </div>
         </div>
 
@@ -258,7 +260,7 @@
                 </label>
             </div>
             <div class="param-row">
-                <button id="exportBtn" class="mode-btn" aria-label="开始渲染PNG序列" style="background:#5a5e8a;">💾 开始渲染PNG序列</button>
+                <button id="exportBtn" class="mode-btn" aria-label="开始渲染PNG序列">💾 开始渲染PNG序列</button>
                 <button id="cancelExportBtn" class="mode-btn" aria-label="取消渲染" style="background:#6b2e3a; display:none;">❌ 取消渲染</button>
             </div>
             <div class="param-row" id="exportProgressRow" style="display: none;">
