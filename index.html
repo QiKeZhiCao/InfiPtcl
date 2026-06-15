@@ -122,14 +122,16 @@
                 </div>
             </div>
         </div>
+
+        <!-- 外观：支持多张贴图 -->
         <div class="param-row">
             <span>外观</span>
             <div class="file-controls">
                 <span id="textureFileName" class="file-name">未选择</span>
-                <label class="file-label" aria-label="上传图片按钮">上传图片
-                    <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                <label class="file-label" aria-label="上传图片按钮（可多选）">📁 上传图片
+                    <input type="file" id="textureUpload" multiple accept="image/png,image/jpeg,image/webp" style="display:none;">
                 </label>
-                <button id="resetTextureBtn" class="file-label" aria-label="使用默认纹理">默认</button>
+                <button id="resetTextureBtn" class="file-label" aria-label="重置为默认纹理">重置纹理</button>
             </div>
         </div>
 

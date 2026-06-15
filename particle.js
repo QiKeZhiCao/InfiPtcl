@@ -1,12 +1,12 @@
-// particle.js - 最终修复版（重影、透明度、边界、双重渲染、导出卡帧，旋转速度单位°/s，增加中心点按钮）
+// particle.js - 最终修复版（支持多张粒子贴图，随机选择）
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
     let particles = [];
-    let textureImage = null;
+    let textureImages = [];     // 存储多个纹理图片对象
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
-    let emitActive = true;      // 注意：不再有暂停/开始按钮，但保留内部状态，以供导出等使用
+    let emitActive = true;
     
     let params = {
         emitRate: 220,
@@ -60,7 +60,11 @@
         tc.fillStyle = grad;
         tc.fill();
         const img = new Image();
-        img.onload = () => { textureImage = img; };
+        img.onload = () => {
+            textureImages = [img];
+            const fileNameSpan = document.getElementById('textureFileName');
+            if (fileNameSpan) fileNameSpan.innerText = '默认纹理 (1张)';
+        };
         img.src = canvasTex.toDataURL();
     }
     createDefaultTexture();
@@ -87,148 +91,21 @@
         particles = [];
         updateParticleCount();
     };
-    window._stepSimulation = function(deltaSec) {
-        // 1. 清除画布（透明背景）
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 2. 物理模拟和粒子发射
-        const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
-        for (let i = particles.length-1; i >= 0; i--) {
-            const p = particles[i];
-            p.life -= deltaSec;
-            if (p.life <= 0) {
-                particles.splice(i,1);
-                continue;
-            }
-            p.vx += gx * deltaSec;
-            p.vy += gy * deltaSec;
-            p.vx *= damp;
-            p.vy *= damp;
-            p.x += p.vx * deltaSec;
-            p.y += p.vy * deltaSec;
-            p.rot += p.rotSpeed * deltaSec;
-            const alive = p.maxLife - p.life;
-            if (alive < p.fadeStart) {
-                p.alpha = 1.0;
-            } else {
-                const fadeElapsed = alive - p.fadeStart;
-                if (fadeElapsed >= p.fadeDuration) {
-                    p.alpha = 0;
-                } else {
-                    p.alpha = 1 - (fadeElapsed / p.fadeDuration);
-                }
-            }
-            if (p.alpha < 0) p.alpha = 0;
-            // 移除 alpha 下限，允许完全透明
-            
-            // 缩小粒子销毁边界
-            const outOffset = 20;
-            if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
-                p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
-                particles.splice(i,1);
-            }
-        }
-        updateParticleCount();
-        
-        // 连续发射
-        if (window._isContinuousMode && emitActive) {
-            let target = params.emitRate * deltaSec;
-            let count = Math.floor(target);
-            if (Math.random() < target - count) count++;
-            if (count) {
-                const ex = emitterPos.x, ey = emitterPos.y;
-                for (let i = 0; i < count; i++) {
-                    if (particles.length >= params.maxParticles) particles.shift();
-                    // 创建粒子逻辑（与 createSingleParticle 相同）
-                    const angleOffset = Math.random() * Math.PI * 2;
-                    const rad = randomRange(0, params.emitRadius);
-                    const px = ex + Math.cos(angleOffset) * rad;
-                    const py = ey + Math.sin(angleOffset) * rad;
-                    const baseRad = params.baseAngle * Math.PI / 180;
-                    const spreadRad = params.angleSpread * Math.PI / 180;
-                    let angleRad = baseRad;
-                    if (spreadRad > 0) {
-                        const offset = randomRange(-spreadRad, spreadRad);
-                        angleRad = baseRad + offset;
-                        angleRad = ((angleRad % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-                    }
-                    const speed = randomRange(params.speedMin, params.speedMax);
-                    const vx = Math.cos(angleRad) * speed;
-                    const vy = Math.sin(angleRad) * speed;
-                    const size = randomRange(params.sizeMin, params.sizeMax);
-                    const fadeStart = randomRange(params.fadeStartMin, params.fadeStartMax);
-                    const fadeDuration = randomRange(params.fadeDurationMin, params.fadeDurationMax);
-                    const maxLife = fadeStart + fadeDuration;
-                    const rotSpeed = randomRange(params.rotSpeedMin, params.rotSpeedMax);
-                    const baseRot = params.initRotAngle * Math.PI / 180;
-                    const spreadRot = params.initRotSpread * Math.PI / 180;
-                    let initRot = baseRot;
-                    if (spreadRot > 0) {
-                        const offset = randomRange(-spreadRot, spreadRot);
-                        initRot = baseRot + offset;
-                        initRot = ((initRot % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-                    }
-                    particles.push({
-                        x: px, y: py, vx, vy, size,
-                        life: maxLife,
-                        maxLife: maxLife,
-                        fadeStart: fadeStart,
-                        fadeDuration: fadeDuration,
-                        rot: initRot, rotSpeed, alpha: 1.0
-                    });
-                }
-                updateParticleCount();
-            }
-        }
-        
-        // 3. 渲染当前粒子（透明背景）
-        if (!textureImage) return;
-        for (let p of particles) {
-            ctx.save();
-            ctx.globalAlpha = p.alpha;
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rot);
-            const half = p.size / 2;
-            if (textureImage.complete) {
-                ctx.drawImage(textureImage, -half, -half, p.size, p.size);
-            } else {
-                ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
-                ctx.beginPath();
-                ctx.arc(0, 0, half, 0, Math.PI*2);
-                ctx.fill();
-            }
-            ctx.restore();
-        }
-    };
-    // ========== 导出辅助函数结束 ==========
     
-    // 以下为正常动画函数
-    function computeAngle() {
-        const baseRad = params.baseAngle * Math.PI / 180;
-        const spreadRad = params.angleSpread * Math.PI / 180;
-        if (spreadRad <= 0) return baseRad;
-        const offset = randomRange(-spreadRad, spreadRad);
-        let angle = baseRad + offset;
-        angle = ((angle % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-        return angle;
-    }
-    
-    function computeInitialRotation() {
-        const baseRot = params.initRotAngle * Math.PI / 180;
-        const spreadRot = params.initRotSpread * Math.PI / 180;
-        if (spreadRot <= 0) return baseRot;
-        const offset = randomRange(-spreadRot, spreadRot);
-        let rot = baseRot + offset;
-        rot = ((rot % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-        return rot;
-    }
-    
-    function createSingleParticle(ex, ey) {
+    // 通用的粒子创建函数（支持随机纹理）
+    function createParticleWithRandomTexture(ex, ey) {
         const angleOffset = Math.random() * Math.PI * 2;
         const rad = randomRange(0, params.emitRadius);
         const px = ex + Math.cos(angleOffset) * rad;
         const py = ey + Math.sin(angleOffset) * rad;
-        const angleRad = computeAngle();
+        const baseRad = params.baseAngle * Math.PI / 180;
+        const spreadRad = params.angleSpread * Math.PI / 180;
+        let angleRad = baseRad;
+        if (spreadRad > 0) {
+            const offset = randomRange(-spreadRad, spreadRad);
+            angleRad = baseRad + offset;
+            angleRad = ((angleRad % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        }
         const speed = randomRange(params.speedMin, params.speedMax);
         const vx = Math.cos(angleRad) * speed;
         const vy = Math.sin(angleRad) * speed;
@@ -237,23 +114,37 @@
         const fadeDuration = randomRange(params.fadeDurationMin, params.fadeDurationMax);
         const maxLife = fadeStart + fadeDuration;
         const rotSpeed = randomRange(params.rotSpeedMin, params.rotSpeedMax);
-        const initRot = computeInitialRotation();
+        const baseRot = params.initRotAngle * Math.PI / 180;
+        const spreadRot = params.initRotSpread * Math.PI / 180;
+        let initRot = baseRot;
+        if (spreadRot > 0) {
+            const offset = randomRange(-spreadRot, spreadRot);
+            initRot = baseRot + offset;
+            initRot = ((initRot % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+        }
+        // 随机选择纹理
+        let texture = null;
+        if (textureImages.length > 0) {
+            const idx = Math.floor(Math.random() * textureImages.length);
+            texture = textureImages[idx];
+        }
         return {
             x: px, y: py, vx, vy, size,
             life: maxLife,
             maxLife: maxLife,
             fadeStart: fadeStart,
             fadeDuration: fadeDuration,
-            rot: initRot, rotSpeed, alpha: 1.0
+            rot: initRot, rotSpeed, alpha: 1.0,
+            texture: texture
         };
     }
 
     window.burstEmit = function(count) {
-        if (!textureImage) return;
+        if (textureImages.length === 0) return;
         const ex = emitterPos.x, ey = emitterPos.y;
         for (let i = 0; i < count; i++) {
             if (particles.length >= params.maxParticles) particles.shift();
-            particles.push(createSingleParticle(ex, ey));
+            particles.push(createParticleWithRandomTexture(ex, ey));
         }
         updateParticleCount();
     };
@@ -304,15 +195,18 @@
     }
     
     function render() {
-        if (!textureImage) return;
         for (let p of particles) {
             ctx.save();
             ctx.globalAlpha = p.alpha;
             ctx.translate(p.x, p.y);
             ctx.rotate(p.rot);
             const half = p.size / 2;
-            if (textureImage.complete) {
-                ctx.drawImage(textureImage, -half, -half, p.size, p.size);
+            const tex = p.texture;
+            if (tex && tex.complete) {
+                ctx.drawImage(tex, -half, -half, p.size, p.size);
+            } else if (textureImages.length > 0 && textureImages[0] && textureImages[0].complete) {
+                // 后备：使用第一张纹理
+                ctx.drawImage(textureImages[0], -half, -half, p.size, p.size);
             } else {
                 ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
                 ctx.beginPath();
@@ -553,16 +447,16 @@
             });
         }
         
-        // 背景色选择器（自定义触发器）
+        // 背景色选择器
         const bgPicker = document.getElementById('bgColorPicker');
         const bgPreview = document.getElementById('bgPreview');
-        const pickColorBtn = document.getElementById('pickColorBtn');
-        if (bgPicker && bgPreview && pickColorBtn) {
-            pickColorBtn.addEventListener('click', () => bgPicker.click());
+        if (bgPicker && bgPreview) {
             bgPicker.addEventListener('input', (e) => {
                 params.backgroundColor = e.target.value;
                 bgPreview.style.backgroundColor = params.backgroundColor;
             });
+            // 初始触发一次
+            bgPicker.dispatchEvent(new Event('input'));
         }
         
         // 发射模式按钮
@@ -570,7 +464,6 @@
         const fixedBtn = document.getElementById('fixedModeBtn');
         const centerBtn = document.getElementById('centerPointBtn');
         if (followBtn && fixedBtn) {
-            // 初始高亮跟随鼠标按钮
             followBtn.classList.add('active');
             fixedBtn.classList.remove('active');
             if (centerBtn) centerBtn.style.display = 'none';
@@ -589,44 +482,52 @@
             });
         }
         
+        // 中心点按钮
+        if (centerBtn) {
+            centerBtn.addEventListener('click', () => {
+                emitterPos.x = canvas.width / 2;
+                emitterPos.y = canvas.height / 2;
+                document.getElementById('emitterCoord').innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
+            });
+        }
+        
         const clearBtn = document.getElementById('clearBtn');
         if (clearBtn) clearBtn.addEventListener('click', () => {
             particles = [];
             updateParticleCount();
         });
         
-        // 移除 pauseEmitBtn 和 resumeEmitBtn 相关代码
-        
-        const resetCheckbox = document.getElementById('resetOnContinuous');
-        if (resetCheckbox) {
-            resetCheckbox.addEventListener('change', (e) => {
-                if (e.target.checked) {
-                    if (clearBtn) clearBtn.click();
-                    e.target.checked = false;
-                }
-            });
-        }
-        
+        // 纹理上传（多文件）
         const textureUpload = document.getElementById('textureUpload');
-        const textureFileName = document.getElementById('textureFileName');
+        const textureFileNameSpan = document.getElementById('textureFileName');
         if (textureUpload) {
             textureUpload.addEventListener('change', (e) => {
-                const file = e.target.files[0];
-                if (file && file.type.startsWith('image/')) {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                let loadedCount = 0;
+                const imgs = [];
+                files.forEach(file => {
                     const img = new Image();
                     img.onload = () => {
-                        textureImage = img;
-                        setParticleSizeFromImage(img);
+                        imgs.push(img);
+                        loadedCount++;
+                        if (loadedCount === files.length) {
+                            textureImages = imgs;
+                            if (textureFileNameSpan) textureFileNameSpan.innerText = `${files.length}张图片`;
+                            // 根据第一张图片调整粒子大小
+                            setParticleSizeFromImage(imgs[0]);
+                        }
                     };
                     img.src = URL.createObjectURL(file);
-                    if (textureFileName) textureFileName.innerText = file.name;
-                } else {
-                    if (textureFileName) textureFileName.innerText = '未选择';
-                }
+                });
             });
         }
+        
         const resetTextureBtn = document.getElementById('resetTextureBtn');
-        if (resetTextureBtn) resetTextureBtn.addEventListener('click', createDefaultTexture);
+        if (resetTextureBtn) resetTextureBtn.addEventListener('click', () => {
+            createDefaultTexture();
+            if (textureFileNameSpan) textureFileNameSpan.innerText = '默认纹理 (1张)';
+        });
     }
     
     function resizeCanvas() {
@@ -713,6 +614,16 @@
         drawEmitter();
         if (window._onSequenceUpdate) window._onSequenceUpdate(nowMs / 1000);
     }
+    
+    // 导出模拟中需要的步进函数（复用现有逻辑）
+    window._stepSimulation = function(deltaSec) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        updatePhysics(deltaSec);
+        emitContinuous(deltaSec);
+        setBackground();
+        render();
+        drawEmitter();
+    };
     
     resizeCanvas();
     bindUI();

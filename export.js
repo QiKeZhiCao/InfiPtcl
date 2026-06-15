@@ -1,7 +1,7 @@
-// export.js - 渲染PNG序列（支持序列模式自动延长至粒子消失）
+// export.js - 渲染PNG序列（修复第一帧空白问题，补充 canvas 定义）
 (function() {
     const exportBtn = document.getElementById('exportBtn');
-    const cancelRow = document.getElementById('cancelExportRow');
+    const cancelBtn = document.getElementById('cancelExportBtn');
     const exportProgressRow = document.getElementById('exportProgressRow');
     const exportProgress = document.getElementById('exportProgress');
     const exportProgressText = document.getElementById('exportProgressText');
@@ -49,6 +49,21 @@
         if (progressSlider) progressSlider.disabled = !enabled;
     }
     
+    // 等待所有纹理完全解码
+    async function waitForTextures() {
+        const textures = window.textureImages || [];
+        if (textures.length === 0) return;
+        const promises = textures.map(img => {
+            if (img.complete && img.naturalWidth > 0) return Promise.resolve();
+            if (img.decode) return img.decode();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+            });
+        });
+        await Promise.all(promises);
+    }
+    
     async function startExport() {
         if (isExporting) {
             exportCancel = true;
@@ -83,7 +98,6 @@
                 if (isNaN(currentTime)) currentTime = 0;
                 currentTime = Math.min(seqTotal, Math.max(0, currentTime));
                 
-                // 计算最大粒子寿命（从UI滑块获取）
                 const fadeStartMax = parseFloat(document.getElementById('fadeStartMax').value);
                 const fadeDurationMax = parseFloat(document.getElementById('fadeDurationMax').value);
                 const maxParticleLife = fadeStartMax + fadeDurationMax;
@@ -91,7 +105,6 @@
                 const userEnd = currentTime + rawDuration;
                 let actualEnd;
                 if (userEnd > seqTotal) {
-                    // 用户设定超出序列结束时间，自动延长到粒子完全消失
                     actualEnd = seqTotal + maxParticleLife;
                     exportStatusMsg.innerText = `导出时长超出序列结束，自动延长至粒子完全消失（${actualEnd.toFixed(2)}s）`;
                 } else {
@@ -130,7 +143,8 @@
         isExporting = true;
         dirHandle = pickedDir;
         exportBtn.style.display = 'none';
-        cancelRow.style.display = 'flex';
+        const cancelRow = document.getElementById('cancelExportRow');
+        if (cancelRow) cancelRow.style.display = 'flex';
         exportProgressRow.style.display = 'flex';
         exportProgress.value = 0;
         exportProgressText.innerText = '0.00%';
@@ -141,20 +155,17 @@
         
         originalOnFrameCaptured = window._onFrameCaptured;
         window._onFrameCaptured = null;
+        
         window._exporting = true;
+        await new Promise(resolve => requestAnimationFrame(resolve));
         
-        // 保存原始状态
-        const originalState = window._cloneParticleState();
-        
-        // 清空粒子（如果需要）
+        // 【修复】粒子清空移至模拟逻辑之前
         if (clearBeforeRender && clearBeforeRender.checked && window._clearParticles) {
             window._clearParticles();
         }
+        const originalState = window._cloneParticleState();
         
-        // 获取脉冲数量
         const burstCount = burstCountSlider ? parseInt(burstCountSlider.value) : 12;
-        
-        // 重置模拟时间
         let simulatedTime = 0;
         const step = 1 / fps;
         let nextPulseIdx = 0;
@@ -182,7 +193,7 @@
             }
         }
         
-        // 模拟到起始时间 currentTime
+        // 模拟到起始时间
         if (isSequenceMode && currentTime > 0) {
             simulateTo(currentTime);
             if (Math.abs(simulatedTime - currentTime) > 1e-6) {
@@ -192,16 +203,25 @@
                     simulatedTime = currentTime;
                 }
             }
-        } else if (!isSequenceMode && currentTime > 0) {
-            // 连续模式不支持从非零开始，忽略
         }
         
+        await waitForTextures();
+        // 【修复】删除手动清屏，改用标准步长渲染起始帧
+        window._stepSimulation(step);
+        await waitForTextures();
+        
+        // 获取 canvas 元素（修复未定义错误）
         const canvas = document.getElementById('particleCanvas');
+        
         exportStatusMsg.innerText = `预计算完成，开始渲染 ${totalFrames} 帧...`;
         
+        // 【核心修复】所有帧统一：先模拟 → 后截图
         for (let frame = 0; frame < totalFrames; frame++) {
             if (exportCancel) break;
-            // 捕获当前帧
+            window._stepSimulation(step);
+            // 异步渲染等待，避免偶发截图空白
+            await new Promise(resolve => requestAnimationFrame(resolve));
+
             const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
             if (!blob) continue;
             const fileName = `${frame+1}.png`;
@@ -221,27 +241,19 @@
             exportProgress.value = progress;
             exportProgressText.innerText = `${progress.toFixed(2)}%`;
             exportStatusMsg.innerText = `渲染中 ${capturedFrames}/${totalFrames}`;
-            
-            if (frame < totalFrames - 1) {
-                simulateTo(simulatedTime + step);
-            }
         }
         
-        // 恢复原始状态
+        // 恢复所有原始状态
         window._restoreParticleState(originalState);
         if (window.params) window.params.backgroundColor = originalBg;
         window._exporting = false;
         window._onFrameCaptured = originalOnFrameCaptured;
         setPlaybackEnabled(true);
         exportBtn.style.display = 'inline-block';
-        cancelRow.style.display = 'none';
+        if (cancelRow) cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         
-        if (!exportCancel) {
-            exportStatusMsg.innerText = `渲染完成！共 ${capturedFrames} 帧 PNG 已保存至所选文件夹。`;
-        } else {
-            exportStatusMsg.innerText = '渲染已取消。';
-        }
+        exportStatusMsg.innerText = exportCancel ? '渲染已取消。' : `渲染完成！共 ${capturedFrames} 帧 PNG 已保存至所选文件夹。`;
         isExporting = false;
     }
     
@@ -252,14 +264,13 @@
         if (originalOnFrameCaptured) window._onFrameCaptured = originalOnFrameCaptured;
         setPlaybackEnabled(true);
         exportBtn.style.display = 'inline-block';
-        cancelRow.style.display = 'none';
+        const cancelRow = document.getElementById('cancelExportRow');
+        if (cancelRow) cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         exportStatusMsg.innerText = '渲染已取消。';
         isExporting = false;
     }
     
     exportBtn.addEventListener('click', startExport);
-    // cancelBtn 不再直接存在，通过 cancelRow 内的按钮获取
-    const cancelBtn = document.getElementById('cancelExportBtn');
-    if (cancelBtn) cancelBtn.addEventListener('click', cancelExport);
+    cancelBtn.addEventListener('click', cancelExport);
 })();
