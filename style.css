@@ -498,6 +498,8 @@ textarea {
     flex: 1;
     min-width: 0;
     margin: 0;
+    display: flex;
+    align-items: center;
 }
 
 .progress-slider {
@@ -511,6 +513,7 @@ textarea {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
+    transform: translateY(-1px); /* 微调垂直位置，补偿 thumb 带来的视觉偏差 */
 }
 .progress-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
