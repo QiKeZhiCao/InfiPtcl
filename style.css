@@ -39,7 +39,7 @@ body {
     padding: 5px 14px;
     border-radius: 40px;
     align-items: center;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     border: 1px solid rgba(255,200,100,0.25);
 }
 
@@ -139,7 +139,7 @@ canvas {
     cursor: crosshair;
 }
 
-/* ========== 严格按照用户要求的控制面板样式 ========== */
+/* ========== 控制面板结构 ========== */
 .control-panel {
     position: fixed;
     right: 20px;
@@ -182,7 +182,7 @@ canvas {
     padding: 16px;
     padding-bottom: 20px;
     margin-left: 3px;
-    max-height: calc(100vh - 160px);  /* 原为 calc(100vh - 100px)，上移 60px */
+    max-height: calc(100vh - 160px);
 }
 
 .panel-content::-webkit-scrollbar {
@@ -230,6 +230,29 @@ body.resizing {
     color: #f0e6d2;
     min-width: 105px;
     flex-shrink: 0;
+}
+
+/* 缩进 */
+.param-row.indent {
+    margin-left: 24px;
+    width: calc(100% - 24px);
+}
+
+/* 分组样式 */
+.param-group {
+    margin-bottom: 12px;
+}
+.group-label {
+    font-weight: 500;
+    color: #ffcf8a;
+    display: block;
+    margin-bottom: 6px;
+    margin-left: 0;
+}
+.group-content {
+    margin-left: 12px;
+    border-left: 1px solid rgba(255,200,100,0.3);
+    padding-left: 12px;
 }
 
 .range-controls {
@@ -291,9 +314,22 @@ body.resizing {
     flex: 1;
     min-width: 0;
 }
-
-/* 统一按钮样式（上传图片、使用默认、开始渲染） */
-.file-label,
+.file-label {
+    background: #3f4668;
+    border-radius: 28px;
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 400;
+    border: 1px solid #6a6f9a;
+    color: white;
+}
+.file-label:hover {
+    background: #4a4e72;
+    border-color: #ffc285;
+}
+/* 统一按钮样式（开始渲染） */
 #exportBtn {
     background: #3f4668;
     border-radius: 28px;
@@ -305,7 +341,6 @@ body.resizing {
     border: 1px solid #6a6f9a;
     color: white;
 }
-.file-label:hover,
 #exportBtn:hover {
     background: #4a4e72;
     border-color: #ffc285;
@@ -385,18 +420,47 @@ hr {
     padding: 4px;
     margin-bottom: 12px;
 }
-.mode-btn {
+.mode-switch .mode-btn {
     flex: 1;
     text-align: center;
     background: transparent;
     border: 1px solid #6a6f9a;
     font-weight: 400;
 }
-.mode-active {
+.mode-switch .mode-active {
     background: #5a5e8a;
     border-color: #ffaa66;
     box-shadow: 0 0 6px rgba(255,170,102,0.5);
 }
+
+/* ========== 工具栏按钮统一样式 ========== */
+/* 所有工具栏按钮（清除粒子、跟随鼠标、固定点、中心点）基础样式统一 */
+.tool-group button {
+    background: #1e1f2c;
+    border: 1px solid #6a6f9a;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 28px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: 0.2s;
+    font-weight: 400;
+    font-family: inherit;
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+}
+.tool-group button:hover {
+    background: #4a4e72;
+    border-color: #ffc285;
+}
+/* 发射模式按钮的高亮状态（跟随鼠标/固定点） */
+.tool-group button.active {
+    background: #5a5e8a;
+    border-color: #ffaa66;
+    box-shadow: 0 0 6px rgba(255,170,102,0.5);
+}
+
 textarea {
     background: #1a1c2a;
     border: 1px solid #6a6f9a;
@@ -513,7 +577,7 @@ textarea {
     box-sizing: border-box;
     padding: 0;
     margin: 0;
-    transform: translateY(-1px); /* 微调垂直位置，补偿 thumb 带来的视觉偏差 */
+    transform: translateY(-1px);
 }
 .progress-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -554,4 +618,23 @@ textarea {
     .progress-slider-wrapper {
         min-width: 80px;
     }
+}
+
+/* 全宽按钮（开始渲染、取消渲染） */
+.full-width-btn {
+    width: 100%;
+    background: #3f4668;
+    border-radius: 28px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 400;
+    border: 1px solid #6a6f9a;
+    color: white;
+    text-align: center;
+}
+.full-width-btn:hover {
+    background: #4a4e72;
+    border-color: #ffc285;
 }

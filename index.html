@@ -9,25 +9,25 @@
 <body>
 
 <div class="toolbar">
-    <div class="title">✨ 粒子发射器 · MIDI驱动序列 ✨</div>
+    <div class="title">粒子发射器 · MIDI驱动序列</div>
     <div class="tool-group">
-        <span>🎨 背景色</span>
+        <span>背景色</span>
         <div class="color-picker-wrapper">
             <div id="bgPreview" class="color-preview" style="background: #000000;"></div>
             <input type="color" id="bgColorPicker" style="display: none;">
         </div>
     </div>
     <div class="tool-group">
-        <span>📍 发射模式</span>
-        <button id="followMouseBtn" class="mode-btn-active" aria-label="跟随鼠标模式">🖱️ 跟随鼠标</button>
-        <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">📌 固定点</button>
-        <button id="centerPointBtn" class="mode-btn" style="display: none;">🎯 中心点</button>
+        <span>发射模式</span>
+        <button id="followMouseBtn" class="mode-btn" aria-label="跟随鼠标模式">跟随鼠标</button>
+        <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">固定点</button>
+        <button id="centerPointBtn" class="mode-btn" style="display: none;">中心点</button>
         <span id="emitterCoord" class="stat"></span>
     </div>
     <div class="tool-group">
-        <button id="clearBtn" aria-label="清除所有粒子">🧹 清除粒子</button>
+        <button id="clearBtn" aria-label="清除所有粒子">清除粒子</button>
         <div class="stat" style="border-left: none; background: transparent; padding: 0; margin-left: 8px;">
-            💠 粒子: <span id="particleCount" class="particle-count">0</span>
+            粒子: <span id="particleCount" class="particle-count">0</span>
         </div>
     </div>
 </div>
@@ -39,7 +39,7 @@
 <!-- 底部播放进度条（序列模式专用） -->
 <div class="playback-bar-container" id="playbackBarContainer" style="display: none;">
     <div class="playback-controls">
-        <button id="seqPlayPauseBtn" class="play-pause-btn" aria-label="播放/暂停序列">▶️ 播放 （空格）</button>
+        <button id="seqPlayPauseBtn" class="play-pause-btn" aria-label="播放/暂停序列">播放 (空格)</button>
         <input type="number" id="currentTimeInput" class="time-input" step="0.01" value="0.00" aria-label="当前播放时间（秒）">
         <div class="progress-slider-wrapper">
             <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" step="0.01" value="0" aria-label="播放进度滑块">
@@ -52,45 +52,28 @@
 <div class="control-panel">
     <div class="resize-handle" title="拖拽调整宽度"></div>
     <div class="panel-content">
+        <!-- 1. 模式切换 -->
         <div class="mode-switch" id="modeSwitch">
-            <button id="continuousModeBtn" class="mode-btn mode-active" aria-label="切换到连续发射模式">🎛️ 连续发射模式</button>
-            <button id="sequenceModeBtn" class="mode-btn" aria-label="切换到序列脉冲模式">⏱️ 序列脉冲模式</button>
+            <button id="continuousModeBtn" class="mode-btn mode-active" aria-label="连续发射模式">连续发射</button>
+            <button id="sequenceModeBtn" class="mode-btn" aria-label="序列脉冲模式">固定序列</button>
         </div>
 
-        <h4>⚙️ 粒子核心参数</h4>
+        <!-- 2. 粒子 -->
+        <h4>粒子</h4>
         <div class="param-row">
-            <span>📈 发射速率</span>
+            <span>发射量</span>
             <input type="range" id="emitRate" min="10" max="800" step="5" value="220" aria-label="发射速率滑块">
             <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值">
             <span class="range-unit">个/s</span>
         </div>
-
         <div class="param-row">
-            <span>⏳ 开始消失时间</span>
-            <div class="range-controls">
-                <input type="number" id="fadeStartMinVal" class="range-value" step="0.1" value="0.5" aria-label="开始消失时间最小值">
-                <input type="range" id="fadeStartMin" min="0" max="10" step="0.1" value="0.5" aria-label="开始消失时间最小值滑块">
-                <span class="range-sep">~</span>
-                <input type="range" id="fadeStartMax" min="0" max="10" step="0.1" value="2.0" aria-label="开始消失时间最大值滑块">
-                <input type="number" id="fadeStartMaxVal" class="range-value" step="0.1" value="2.0" aria-label="开始消失时间最大值">
-                <span class="range-unit">s</span>
-            </div>
+            <span>发射区半径</span>
+            <input type="range" id="emitRadius" min="0" max="45" step="1" value="5" aria-label="发射半径滑块">
+            <input type="number" id="emitRadiusVal" class="range-value" step="1" value="5" aria-label="发射半径数值">
+            <span class="range-unit">px</span>
         </div>
-
         <div class="param-row">
-            <span>⏳ 消失持续时间</span>
-            <div class="range-controls">
-                <input type="number" id="fadeDurationMinVal" class="range-value" step="0.1" value="0.3" aria-label="消失持续时间最小值">
-                <input type="range" id="fadeDurationMin" min="0" max="8" step="0.1" value="0.3" aria-label="消失持续时间最小值滑块">
-                <span class="range-sep">~</span>
-                <input type="range" id="fadeDurationMax" min="0" max="8" step="0.1" value="1.0" aria-label="消失持续时间最大值滑块">
-                <input type="number" id="fadeDurationMaxVal" class="range-value" step="0.1" value="1.0" aria-label="消失持续时间最大值">
-                <span class="range-unit">s</span>
-            </div>
-        </div>
-
-        <div class="param-row">
-            <span>🔘 粒子大小</span>
+            <span>大小</span>
             <div class="range-controls">
                 <input type="number" id="sizeMinVal" class="range-value" step="1" value="6" aria-label="粒子大小最小值">
                 <input type="range" id="sizeMin" min="2" max="80" step="1" value="6" aria-label="粒子大小最小值滑块">
@@ -100,148 +83,185 @@
                 <span class="range-unit">px</span>
             </div>
         </div>
-
         <div class="param-row">
-            <span>💨 速度大小</span>
-            <div class="range-controls">
-                <input type="number" id="speedMinVal" class="range-value" step="5" value="80" aria-label="速度最小值">
-                <input type="range" id="speedMin" min="10" max="500" step="5" value="80" aria-label="速度最小值滑块">
-                <span class="range-sep">~</span>
-                <input type="range" id="speedMax" min="30" max="800" step="5" value="240" aria-label="速度最大值滑块">
-                <input type="number" id="speedMaxVal" class="range-value" step="5" value="240" aria-label="速度最大值">
-                <span class="range-unit">px/s</span>
+            <span>角度</span>
+            <input type="range" id="baseAngle" min="0" max="360" step="1" value="0" aria-label="基准方向滑块">
+            <input type="number" id="baseAngleVal" class="range-value" step="1" value="0" aria-label="基准方向角度">
+            <span class="range-unit">°</span>
+        </div>
+        <div class="param-row indent">
+            <span>随机偏移</span>
+            <input type="range" id="angleSpread" min="0" max="180" step="1" value="180" aria-label="随机偏转角范围滑块">
+            <input type="number" id="angleSpreadVal" class="range-value" step="1" value="180" aria-label="随机偏转角范围">
+            <span class="range-unit">°</span>
+        </div>
+        <div class="param-group">
+            <span class="group-label">渐隐</span>
+            <div class="group-content">
+                <div class="param-row">
+                    <span>开始</span>
+                    <div class="range-controls">
+                        <input type="number" id="fadeStartMinVal" class="range-value" step="0.1" value="0.5">
+                        <input type="range" id="fadeStartMin" min="0" max="10" step="0.1" value="0.5">
+                        <span class="range-sep">~</span>
+                        <input type="range" id="fadeStartMax" min="0" max="10" step="0.1" value="2.0">
+                        <input type="number" id="fadeStartMaxVal" class="range-value" step="0.1" value="2.0">
+                        <span class="range-unit">s</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span>持续</span>
+                    <div class="range-controls">
+                        <input type="number" id="fadeDurationMinVal" class="range-value" step="0.1" value="0.3">
+                        <input type="range" id="fadeDurationMin" min="0" max="8" step="0.1" value="0.3">
+                        <span class="range-sep">~</span>
+                        <input type="range" id="fadeDurationMax" min="0" max="8" step="0.1" value="1.0">
+                        <input type="number" id="fadeDurationMaxVal" class="range-value" step="0.1" value="1.0">
+                        <span class="range-unit">s</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="param-row">
+            <span>外观</span>
+            <div class="file-controls">
+                <span id="textureFileName" class="file-name">未选择</span>
+                <label class="file-label" aria-label="上传图片按钮">上传图片
+                    <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
+                </label>
+                <button id="resetTextureBtn" class="file-label" aria-label="使用默认纹理">默认</button>
             </div>
         </div>
 
+        <!-- 3. 运动 -->
+        <h4>运动</h4>
         <div class="param-row">
-            <span>🧭 基准方向</span>
-            <input type="range" id="baseAngle" min="0" max="360" step="1" value="0" aria-label="基准方向滑块">
-            <input type="number" id="baseAngleVal" class="range-value" step="1" value="0" aria-label="基准方向角度">°
+            <span>速度</span>
+            <div class="range-controls">
+                <input type="number" id="speedMinVal" class="range-value" step="5" value="80">
+                <input type="range" id="speedMin" min="10" max="500" step="5" value="80">
+                <span class="range-sep">~</span>
+                <input type="range" id="speedMax" min="30" max="800" step="5" value="240">
+                <input type="number" id="speedMaxVal" class="range-value" step="5" value="240">
+                <span class="range-unit">px/s</span>
+            </div>
         </div>
-
-        <div class="param-row">
-            <span>🎲 随机偏转角范围</span>
-            <input type="range" id="angleSpread" min="0" max="180" step="1" value="180" aria-label="随机偏转角范围滑块">
-            <input type="number" id="angleSpreadVal" class="range-value" step="1" value="180" aria-label="随机偏转角范围">°
+        <div class="param-group">
+            <span class="group-label">加速度</span>
+            <div class="group-content">
+                <div class="param-row">
+                    <span>X轴</span>
+                    <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0" aria-label="X轴加速度滑块">
+                    <input type="number" id="gravityXVal" class="range-value" step="5" value="0" aria-label="X轴加速度数值">
+                    <span class="range-unit">px/s²</span>
+                </div>
+                <div class="param-row">
+                    <span>Y轴</span>
+                    <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80" aria-label="Y轴加速度滑块">
+                    <input type="number" id="gravityYVal" class="range-value" step="5" value="80" aria-label="Y轴加速度数值">
+                    <span class="range-unit">px/s²</span>
+                </div>
+            </div>
         </div>
-
-        <h4>🌪️ 场域 & 旋转</h4>
         <div class="param-row">
-            <span>🌍 X 轴加速度</span>
-            <input type="range" id="gravityX" min="-2000" max="2000" step="5" value="0" aria-label="X轴加速度滑块">
-            <input type="number" id="gravityXVal" class="range-value" step="5" value="0" aria-label="X轴加速度数值">
-            <span class="range-unit">px/s²</span>
-        </div>
-
-        <div class="param-row">
-            <span>🌍 Y 轴加速度</span>
-            <input type="range" id="gravityY" min="-2000" max="2000" step="5" value="80" aria-label="Y轴加速度滑块">
-            <input type="number" id="gravityYVal" class="range-value" step="5" value="80" aria-label="Y轴加速度数值">
-            <span class="range-unit">px/s²</span>
-        </div>
-
-        <div class="param-row">
-            <span>🌀 空气阻力</span>
-            <input type="range" id="damping" min="0.95" max="1" step="0.002" value="0.99" aria-label="空气阻力滑块">
-            <input type="number" id="dampingVal" class="range-value" step="0.001" value="0.990" aria-label="空气阻力数值">
-        </div>
-
-        <div class="param-row">
-            <span>🔄 初始旋转角度</span>
+            <span>方向</span>
             <input type="range" id="initRotAngle" min="0" max="360" step="1" value="0" aria-label="初始旋转角度滑块">
-            <input type="number" id="initRotAngleVal" class="range-value" step="1" value="0" aria-label="初始旋转角度">°
+            <input type="number" id="initRotAngleVal" class="range-value" step="1" value="0" aria-label="初始旋转角度">
+            <span class="range-unit">°</span>
         </div>
-
-        <div class="param-row">
-            <span>🎲 初始旋转随机范围</span>
+        <div class="param-row indent">
+            <span>随机偏移</span>
             <input type="range" id="initRotSpread" min="0" max="180" step="1" value="0" aria-label="初始旋转随机范围滑块">
-            <input type="number" id="initRotSpreadVal" class="range-value" step="1" value="0" aria-label="初始旋转随机范围">°
+            <input type="number" id="initRotSpreadVal" class="range-value" step="1" value="0" aria-label="初始旋转随机范围">
+            <span class="range-unit">°</span>
         </div>
-
         <div class="param-row">
-            <span>🎡 旋转速度范围</span>
+            <span>转速</span>
             <div class="range-controls">
                 <input type="number" id="rotSpeedMinVal" class="range-value" step="1" value="-200">
-                <input type="range" id="rotSpeedMin" min="-200" max="200" step="1" value="-200" aria-label="旋转速度最小值滑块">
+                <input type="range" id="rotSpeedMin" min="-200" max="200" step="1" value="-200">
                 <span class="range-sep">~</span>
-                <input type="range" id="rotSpeedMax" min="-200" max="200" step="1" value="200" aria-label="旋转速度最大值滑块">
+                <input type="range" id="rotSpeedMax" min="-200" max="200" step="1" value="200">
                 <input type="number" id="rotSpeedMaxVal" class="range-value" step="1" value="200">
                 <span class="range-unit">°/s</span>
             </div>
         </div>
-
         <div class="param-row">
-            <span>🎯 发射半径 （偏移）</span>
-            <input type="range" id="emitRadius" min="0" max="45" step="1" value="5" aria-label="发射半径滑块">
-            <input type="number" id="emitRadiusVal" class="range-value" step="1" value="5" aria-label="发射半径数值"> px
+            <span>空气阻力</span>
+            <input type="range" id="damping" min="0.95" max="1" step="0.002" value="0.99">
+            <input type="number" id="dampingVal" class="range-value" step="0.001" value="0.990">
         </div>
 
-        <!-- 粒子贴图 -->
+        <!-- 4. 显示 -->
+        <h4>显示</h4>
         <div class="param-row">
-            <span>🖼️ 粒子贴图</span>
-            <div class="file-controls">
-                <span id="textureFileName" class="file-name">未选择</span>
-                <label class="file-label" aria-label="上传图片按钮">📁 上传图片
-                    <input type="file" id="textureUpload" accept="image/png,image/jpeg,image/webp" style="display:none;">
-                </label>
-                <button id="resetTextureBtn" class="file-label" aria-label="使用默认纹理">使用默认</button>
-            </div>
-        </div>
-
-        <div class="param-row">
-            <span>📌 最大粒子数</span>
-            <input type="range" id="maxParticles" min="500" max="6000" step="100" value="3000" aria-label="最大粒子数滑块">
-            <input type="number" id="maxParticlesVal" class="range-value" step="100" value="3000" aria-label="最大粒子数数值">
+            <span>最大粒子数</span>
+            <input type="range" id="maxParticles" min="500" max="6000" step="100" value="3000">
+            <input type="number" id="maxParticlesVal" class="range-value" step="100" value="3000">
         </div>
 
         <hr id="modeSeparator" style="display: none;">
 
+        <!-- 5. 时间戳序列（仅序列脉冲模式显示） -->
         <div id="sequencePanel" style="display: none;">
-            <h4>⏲️ 时间戳序列脉冲发射</h4>
+            <h4>时间戳序列</h4>
             <div class="param-row">
-                <span>每次脉冲数量</span>
-                <input type="range" id="burstCount" min="1" max="200" step="1" value="12" aria-label="每次脉冲数量滑块">
-                <input type="number" id="burstCountVal" class="range-value" step="1" value="12" aria-label="每次脉冲数量数值"> 个
+                <span>单次发射量</span>
+                <input type="range" id="burstCount" min="1" max="200" step="1" value="12">
+                <input type="number" id="burstCountVal" class="range-value" step="1" value="12">
+                <span class="range-unit">个</span>
             </div>
             <div class="param-row">
-                <span>时间戳数组 （秒）</span>
+                <span>时间戳数组</span>
                 <textarea id="timelineInput" rows="3" placeholder='例如： [0.0, 0.5, 0.5, 1.2, 2.0]' aria-label="时间戳数组输入框"></textarea>
+                <span class="range-unit">秒</span>
             </div>
             <div class="param-row">
-                <span>🎹 MIDI文件</span>
-                <div class="file-controls">
-                    <span id="midiFileName" class="file-name">未选择</span>
-                    <label class="file-label" aria-label="导入MIDI文件按钮">导入
-                        <input type="file" id="midiUpload" accept="audio/midi, .mid" style="display:none;">
-                    </label>
+                <span>精度</span>
+                <select id="precisionSelect" style="flex:1; background:#1e1f2c;">
+                    <option value="1">1 位小数 (0.1s)</option>
+                    <option value="2">2 位小数 (0.01s)</option>
+                    <option value="3" selected>3 位小数 (0.001s)</option>
+                    <option value="4">4 位小数 (0.0001s)</option>
+                    <option value="5">5 位小数 (0.00001s)</option>
+                    <option value="6">6 位小数 (0.000001s)</option>
+                </select>
+            </div>
+            <div class="param-group">
+                <span class="group-label">MIDI</span>
+                <div class="group-content">
+                    <div class="param-row">
+                        <span>文件</span>
+                        <div class="file-controls">
+                            <span id="midiFileName" class="file-name">未选择</span>
+                            <label class="file-label" aria-label="导入MIDI文件按钮">导入
+                                <input type="file" id="midiUpload" accept="audio/midi, .mid" style="display:none;">
+                            </label>
+                        </div>
+                    </div>
+                    <div class="param-row">
+                        <span>音轨</span>
+                        <select id="midiTrackSelect" style="flex:1; background:#1e1f2c;">
+                            <option value="all">所有轨道合并</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div class="param-row">
-                <span>🎚️ MIDI轨道</span>
-                <select id="midiTrackSelect" style="flex:1; background:#1e1f2c;" aria-label="MIDI轨道选择">
-                    <option value="all">所有轨道合并</option>
-                </select>
+                <label style="display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="loopSeqCheckbox"> 循环
+                </label>
             </div>
-            <div class="param-row">
-                <span>🔢 时间戳精度</span>
-                <select id="precisionSelect" style="background:#1e1f2c;" aria-label="时间戳精度选择">
-                    <option value="1">1 位小数 （0.1s）</option>
-                    <option value="2">2 位小数 （0.01s）</option>
-                    <option value="3" selected>3 位小数 （0.001s）</option>
-                    <option value="4">4 位小数 （0.0001s）</option>
-                    <option value="5">5 位小数 （0.00001s）</option>
-                    <option value="6">6 位小数 （0.000001s）</option>
-                </select>
-            </div>
-            <div class="seq-status" id="seqStatusMsg">⏳ 未加载/未播放</div>
+            <div class="seq-status" id="seqStatusMsg">未加载/未播放</div>
         </div>
 
         <hr id="exportSeparator" style="margin-top: 16px;">
 
+        <!-- 6. 渲染PNG序列 -->
         <div id="exportPanel">
-            <h4>🎬 渲染PNG序列（透明背景）</h4>
+            <h4>渲染PNG序列（透明背景）</h4>
             <div class="param-row">
-                <span>📐 帧率</span>
+                <span>帧率</span>
                 <input type="range" id="exportFps" min="1" max="120" step="1" value="30" aria-label="渲染帧率滑块">
                 <div style="display: flex; align-items: center; gap: 4px;">
                     <input type="number" id="exportFpsVal" class="range-value" step="any" value="30" aria-label="渲染帧率数值" style="width: 70px;">
@@ -249,26 +269,30 @@
                 </div>
             </div>
             <div class="param-row">
-                <span>⏱️ 导出时长</span>
+                <span>导出时长</span>
                 <input type="range" id="exportDuration" min="0.1" max="300" step="0.1" value="30" aria-label="导出时长滑块">
                 <input type="number" id="exportDurationVal" class="range-value" step="any" value="30" aria-label="导出时长数值">
                 <span class="range-unit">s</span>
             </div>
             <div class="param-row">
                 <label style="display: flex; align-items: center; gap: 8px;">
-                    <input type="checkbox" id="clearBeforeRender"> 🧹 渲染前清空粒子
+                    <input type="checkbox" id="clearBeforeRender"> 渲染前清空粒子
                 </label>
             </div>
+            <!-- 开始渲染按钮单独占一行，宽度100% -->
             <div class="param-row">
-                <button id="exportBtn" class="mode-btn" aria-label="开始渲染PNG序列">💾 开始渲染PNG序列</button>
-                <button id="cancelExportBtn" class="mode-btn" aria-label="取消渲染" style="background:#6b2e3a; display:none;">❌ 取消渲染</button>
+                <button id="exportBtn" class="full-width-btn" aria-label="开始渲染PNG序列">开始渲染</button>
+            </div>
+            <!-- 取消渲染按钮单独占一行，初始隐藏 -->
+            <div class="param-row" id="cancelExportRow" style="display: none;">
+                <button id="cancelExportBtn" class="full-width-btn" aria-label="取消渲染">取消渲染</button>
             </div>
             <div class="param-row" id="exportProgressRow" style="display: none;">
-                <span>📊 渲染进度</span>
+                <span>渲染进度</span>
                 <progress id="exportProgress" value="0" max="100" style="flex:1;"></progress>
                 <span id="exportProgressText" class="total-time">0.00%</span>
             </div>
-            <div class="seq-status" id="exportStatusMsg">✨ 可渲染透明背景PNG序列，建议使用文件夹模式（内存零负担）。</div>
+            <div class="seq-status" id="exportStatusMsg">可渲染透明背景PNG序列，建议使用文件夹模式（内存零负担）。</div>
         </div>
     </div>
 </div>
