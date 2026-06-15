@@ -1,4 +1,4 @@
-// particle.js - 最终修复版（包含坐标半角括号+空格，背景色点击预览）
+// particle.js - 最终修复版（重影、透明度、边界、双重渲染、导出卡帧，旋转速度单位°/s，增加中心点按钮）
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
@@ -6,7 +6,7 @@
     let textureImage = null;
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
-    let emitActive = true;
+    let emitActive = true;      // 注意：不再有暂停/开始按钮，但保留内部状态，以供导出等使用
     
     let params = {
         emitRate: 220,
@@ -23,7 +23,7 @@
         gravityX: 0,
         gravityY: 80,
         damping: 0.99,
-        rotSpeedMin: -1.2,
+        rotSpeedMin: -1.2,   // 弧度，滑块值为角度
         rotSpeedMax: 1.8,
         emitRadius: 5,
         maxParticles: 3000,
@@ -88,7 +88,10 @@
         updateParticleCount();
     };
     window._stepSimulation = function(deltaSec) {
+        // 1. 清除画布（透明背景）
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 2. 物理模拟和粒子发射
         const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
         for (let i = particles.length-1; i >= 0; i--) {
             const p = particles[i];
@@ -116,6 +119,9 @@
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
+            // 移除 alpha 下限，允许完全透明
+            
+            // 缩小粒子销毁边界
             const outOffset = 20;
             if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
                 p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
@@ -123,6 +129,8 @@
             }
         }
         updateParticleCount();
+        
+        // 连续发射
         if (window._isContinuousMode && emitActive) {
             let target = params.emitRate * deltaSec;
             let count = Math.floor(target);
@@ -131,6 +139,7 @@
                 const ex = emitterPos.x, ey = emitterPos.y;
                 for (let i = 0; i < count; i++) {
                     if (particles.length >= params.maxParticles) particles.shift();
+                    // 创建粒子逻辑（与 createSingleParticle 相同）
                     const angleOffset = Math.random() * Math.PI * 2;
                     const rad = randomRange(0, params.emitRadius);
                     const px = ex + Math.cos(angleOffset) * rad;
@@ -171,6 +180,8 @@
                 updateParticleCount();
             }
         }
+        
+        // 3. 渲染当前粒子（透明背景）
         if (!textureImage) return;
         for (let p of particles) {
             ctx.save();
@@ -191,6 +202,7 @@
     };
     // ========== 导出辅助函数结束 ==========
     
+    // 以下为正常动画函数
     function computeAngle() {
         const baseRad = params.baseAngle * Math.PI / 180;
         const spreadRad = params.angleSpread * Math.PI / 180;
@@ -385,6 +397,7 @@
             update();
         }
         
+        // 范围参数绑定
         function bindRange(minId, maxId, paramMin, paramMax, isFloat, step) {
             const minSlider = document.getElementById(minId);
             const maxSlider = document.getElementById(maxId);
@@ -428,6 +441,7 @@
         bindRange('sizeMin', 'sizeMax', 'sizeMin', 'sizeMax', false, 1);
         bindRange('speedMin', 'speedMax', 'speedMin', 'speedMax', false, 5);
         
+        // 旋转速度范围：滑块值为角度，内部存储弧度
         const rotSpeedMinSlider = document.getElementById('rotSpeedMin');
         const rotSpeedMaxSlider = document.getElementById('rotSpeedMax');
         const rotSpeedMinVal = document.getElementById('rotSpeedMinVal');
@@ -539,41 +553,40 @@
             });
         }
         
-        // 背景色选择器（点击预览触发）
+        // 背景色选择器（自定义触发器）
         const bgPicker = document.getElementById('bgColorPicker');
         const bgPreview = document.getElementById('bgPreview');
-        if (bgPicker && bgPreview) {
-            bgPreview.addEventListener('click', () => bgPicker.click());
+        const pickColorBtn = document.getElementById('pickColorBtn');
+        if (bgPicker && bgPreview && pickColorBtn) {
+            pickColorBtn.addEventListener('click', () => bgPicker.click());
             bgPicker.addEventListener('input', (e) => {
                 params.backgroundColor = e.target.value;
                 bgPreview.style.backgroundColor = params.backgroundColor;
             });
         }
         
+        // 发射模式按钮
         const followBtn = document.getElementById('followMouseBtn');
         const fixedBtn = document.getElementById('fixedModeBtn');
         const centerBtn = document.getElementById('centerPointBtn');
         if (followBtn && fixedBtn) {
+            // 初始高亮跟随鼠标按钮
+            followBtn.classList.add('active');
+            fixedBtn.classList.remove('active');
+            if (centerBtn) centerBtn.style.display = 'none';
+            
             followBtn.addEventListener('click', () => {
                 followMouse = true;
-                followBtn.style.background = '#5a5e8a';
-                fixedBtn.style.background = '#2c2f42';
+                followBtn.classList.add('active');
+                fixedBtn.classList.remove('active');
                 if (centerBtn) centerBtn.style.display = 'none';
             });
             fixedBtn.addEventListener('click', () => {
                 followMouse = false;
-                fixedBtn.style.background = '#5a5e8a';
-                followBtn.style.background = '#2c2f42';
+                fixedBtn.classList.add('active');
+                followBtn.classList.remove('active');
                 if (centerBtn) centerBtn.style.display = 'inline-block';
             });
-            if (centerBtn) {
-                centerBtn.style.display = followMouse ? 'none' : 'inline-block';
-                centerBtn.addEventListener('click', () => {
-                    emitterPos.x = canvas.width / 2;
-                    emitterPos.y = canvas.height / 2;
-                    document.getElementById('emitterCoord').innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
-                });
-            }
         }
         
         const clearBtn = document.getElementById('clearBtn');
@@ -581,6 +594,8 @@
             particles = [];
             updateParticleCount();
         });
+        
+        // 移除 pauseEmitBtn 和 resumeEmitBtn 相关代码
         
         const resetCheckbox = document.getElementById('resetOnContinuous');
         if (resetCheckbox) {

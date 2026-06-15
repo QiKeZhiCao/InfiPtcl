@@ -1,7 +1,7 @@
 // export.js - 渲染PNG序列（支持序列模式自动延长至粒子消失）
 (function() {
     const exportBtn = document.getElementById('exportBtn');
-    const cancelBtn = document.getElementById('cancelExportBtn');
+    const cancelRow = document.getElementById('cancelExportRow');
     const exportProgressRow = document.getElementById('exportProgressRow');
     const exportProgress = document.getElementById('exportProgress');
     const exportProgressText = document.getElementById('exportProgressText');
@@ -130,7 +130,7 @@
         isExporting = true;
         dirHandle = pickedDir;
         exportBtn.style.display = 'none';
-        cancelBtn.style.display = 'inline-block';
+        cancelRow.style.display = 'flex';
         exportProgressRow.style.display = 'flex';
         exportProgress.value = 0;
         exportProgressText.innerText = '0.00%';
@@ -234,7 +234,7 @@
         window._onFrameCaptured = originalOnFrameCaptured;
         setPlaybackEnabled(true);
         exportBtn.style.display = 'inline-block';
-        cancelBtn.style.display = 'none';
+        cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         
         if (!exportCancel) {
@@ -252,12 +252,14 @@
         if (originalOnFrameCaptured) window._onFrameCaptured = originalOnFrameCaptured;
         setPlaybackEnabled(true);
         exportBtn.style.display = 'inline-block';
-        cancelBtn.style.display = 'none';
+        cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         exportStatusMsg.innerText = '渲染已取消。';
         isExporting = false;
     }
     
     exportBtn.addEventListener('click', startExport);
-    cancelBtn.addEventListener('click', cancelExport);
+    // cancelBtn 不再直接存在，通过 cancelRow 内的按钮获取
+    const cancelBtn = document.getElementById('cancelExportBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', cancelExport);
 })();
