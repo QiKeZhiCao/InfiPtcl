@@ -131,60 +131,70 @@ canvas {
     cursor: crosshair;
 }
 
+/* ========== 控制面板结构 ========== */
 .control-panel {
     position: fixed;
     right: 20px;
     top: 80px;
-    bottom: 20px;
     width: 320px;
-    min-width: 280px;
+    min-width: 320px;
     max-width: 500px;
-    height: auto;
-    max-height: calc(100vh - 140px);
-    overflow-y: auto;
-    overflow-x: hidden;
     background: rgba(12, 14, 24, 0.96);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border-radius: 24px;
-    padding: 16px;
-    padding-bottom: 20px;
     border: 1px solid rgba(255, 200, 100, 0.45);
     box-shadow: 0 12px 30px rgba(0,0,0,0.8);
     z-index: 20;
     font-size: 12px;
+    /* 使用 flex 布局，内容区域独立滚动 */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* 确保圆角裁剪 */
 }
 
-/* WebKit滚动条样式（支持Chrome/Safari/Edge） */
-.control-panel::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
-}
-.control-panel::-webkit-scrollbar-track {
-    background: #2a2e3c;
-    border-radius: 10px;
-}
-.control-panel::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
-}
-.control-panel::-webkit-scrollbar-thumb:hover {
-    background: #ffcc88;
-}
-
+/* 独立手柄（绝对定位，不随内容滚动） */
 .resize-handle {
     position: absolute;
-    left: -5px;
+    left: 0;
     top: 0;
     bottom: 0;
-    width: 8px;
+    width: 6px;
     cursor: ew-resize;
     background: rgba(255, 200, 100, 0.3);
     transition: background 0.2s;
     z-index: 30;
+    border-radius: 24px 0 0 24px;
 }
 .resize-handle:hover {
     background: rgba(255, 200, 100, 0.8);
+}
+
+/* 可滚动的内容区域 */
+.panel-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    padding-bottom: 20px;
+    margin-left: 6px; /* 为手柄留出空间 */
+    max-height: calc(100vh - 100px); /* 与之前一致 */
+}
+
+/* 滚动条样式（在 .panel-content 内部） */
+.panel-content::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.panel-content::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 10px;
+}
+.panel-content::-webkit-scrollbar-thumb {
+    background: #ffaa66;
+    border-radius: 10px;
+}
+.panel-content::-webkit-scrollbar-thumb:hover {
+    background: #ffcc88;
 }
 
 body.resizing {
@@ -193,6 +203,7 @@ body.resizing {
     cursor: ew-resize;
 }
 
+/* 其余样式保持不变（参数行、滑块等） */
 .control-panel h4 {
     margin-bottom: 10px;
     color: #ffcf8a;
@@ -398,9 +409,6 @@ textarea {
     .control-panel {
         width: 280px;
         right: 12px;
-        padding: 12px;
-        max-height: calc(100vh - 130px);
-        bottom: 15px;
     }
     .param-row {
         flex-wrap: wrap;
