@@ -448,9 +448,13 @@
         }
         
         // 背景色选择器
+        // 背景色选择器
         const bgPicker = document.getElementById('bgColorPicker');
         const bgPreview = document.getElementById('bgPreview');
         if (bgPicker && bgPreview) {
+            // 添加这一行：点击预览块触发颜色选择器
+            bgPreview.addEventListener('click', () => bgPicker.click());
+            
             bgPicker.addEventListener('input', (e) => {
                 params.backgroundColor = e.target.value;
                 bgPreview.style.backgroundColor = params.backgroundColor;
