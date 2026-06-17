@@ -232,13 +232,12 @@ body.resizing {
     flex-shrink: 0;
 }
 
-/* 缩进 */
-.param-row.indent {
-    margin-left: 24px;
-    width: calc(100% - 24px);
+/* 统一缩进：padding-left:24px，左边框 */
+.indent-line {
+    padding-left: 24px;
+    border-left: 1px solid rgba(255, 200, 100, 0.25);
 }
 
-/* 分组样式 */
 .param-group {
     margin-bottom: 12px;
 }
@@ -250,9 +249,8 @@ body.resizing {
     margin-left: 0;
 }
 .group-content {
-    margin-left: 12px;
+    padding-left: 24px;
     border-left: 1px solid rgba(255,200,100,0.3);
-    padding-left: 12px;
 }
 
 .range-controls {
@@ -433,8 +431,7 @@ hr {
     box-shadow: 0 0 6px rgba(255,170,102,0.5);
 }
 
-/* ========== 工具栏按钮统一样式 ========== */
-/* 所有工具栏按钮（清除粒子、跟随鼠标、固定点、中心点）基础样式统一 */
+/* 工具栏按钮统一样式 */
 .tool-group button {
     background: #1e1f2c;
     border: 1px solid #6a6f9a;
@@ -454,7 +451,6 @@ hr {
     background: #4a4e72;
     border-color: #ffc285;
 }
-/* 发射模式按钮的高亮状态（跟随鼠标/固定点） */
 .tool-group button.active {
     background: #5a5e8a;
     border-color: #ffaa66;
@@ -470,8 +466,36 @@ textarea {
     font-family: inherit;
     font-size: 11px;
     width: 100%;
-    resize: vertical;
+    resize: vertical; /* 保留垂直拖拽，但自定义样式 */
+    position: relative;
+    z-index: 1;
 }
+
+/* 时间戳输入框滚动条及右下角手柄样式 */
+#timelineInput::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+#timelineInput::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 10px;
+}
+#timelineInput::-webkit-scrollbar-thumb {
+    background: #ffaa66;
+    border-radius: 10px;
+}
+#timelineInput::-webkit-scrollbar-thumb:hover {
+    background: #ffcc88;
+}
+#timelineInput::-webkit-scrollbar-button {
+    display: none;
+}
+/* 自定义右下角拖拽手柄样式，与滚动条匹配 */
+#timelineInput::-webkit-resizer {
+    background: #ffaa66;
+    border-radius: 0 0 4px 0;
+}
+
 .seq-status {
     font-size: 11px;
     background: #00000066;
@@ -508,6 +532,77 @@ textarea {
     .file-label {
         order: 2;
     }
+}
+
+/* ===== 开关样式 ===== */
+.switch {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #f0f3fa;
+}
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+.slider {
+    position: relative;
+    display: inline-block;
+    width: 34px;
+    height: 20px;
+    background-color: #3a3e5a;
+    transition: .3s;
+    border-radius: 20px;
+    flex-shrink: 0;
+}
+.slider::before {
+    content: "";
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+input:checked + .slider {
+    background-color: #ffaa66;
+}
+input:checked + .slider::before {
+    transform: translateX(14px);
+}
+
+/* 全宽按钮 */
+.full-width-btn {
+    width: 100%;
+    background: #3f4668;
+    border-radius: 28px;
+    padding: 6px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 400;
+    border: 1px solid #6a6f9a;
+    color: white;
+    text-align: center;
+}
+.full-width-btn:hover {
+    background: #4a4e72;
+    border-color: #ffc285;
+}
+
+/* 选择框文字颜色 */
+select {
+    color: white;
+}
+select option {
+    background: #1e1f2c;
+    color: white;
 }
 
 .playback-bar-container {
@@ -618,23 +713,4 @@ textarea {
     .progress-slider-wrapper {
         min-width: 80px;
     }
-}
-
-/* 全宽按钮（开始渲染、取消渲染） */
-.full-width-btn {
-    width: 100%;
-    background: #3f4668;
-    border-radius: 28px;
-    padding: 6px 12px;
-    cursor: pointer;
-    white-space: nowrap;
-    font-size: 12px;
-    font-weight: 400;
-    border: 1px solid #6a6f9a;
-    color: white;
-    text-align: center;
-}
-.full-width-btn:hover {
-    background: #4a4e72;
-    border-color: #ffc285;
 }
