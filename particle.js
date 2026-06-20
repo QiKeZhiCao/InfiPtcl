@@ -28,8 +28,8 @@
         gravityX: 0,
         gravityY: 80,
         damping: 0.99,
-        rotSpeedMin: -1.2,
-        rotSpeedMax: 1.8,
+        rotSpeedMin: -200 * Math.PI / 180,
+        rotSpeedMax: 200 * Math.PI / 180,
         emitRadius: 5,
         maxParticles: 3000,
         backgroundColor: '#000000',
@@ -40,7 +40,6 @@
     window._isContinuousMode = true;
 
     let textureImages = [];
-    window._particleTextures = textureImages;
 
     // 累加器变量（用于均匀发射）
     let emitAccumulator = 0;
@@ -53,13 +52,8 @@
     window._particleTextContent = textContent;
     window._particleSelectedFont = selectedFont;
     window._particleFontStyles = fontStyles;
-    window._particleTextures = textureImages;
     window._randomRateMode = false;
 
-    window._clearParticles = function() {
-        particles = [];
-        updateParticleCount();
-    };
     window._resetDefaultTexture = function() {
         createDefaultTexture();
     };

@@ -1,34 +1,6 @@
 // sequence.js - 最终版，整合横线控制、MIDI导入重置等
 (function(){
-    let loopSeqCheckbox = document.getElementById('loopSeqCheckbox');
-    if (!loopSeqCheckbox) {
-        const sequencePanel = document.getElementById('sequencePanel');
-        if (sequencePanel) {
-            const row = document.createElement('div');
-            row.className = 'param-row';
-            const label = document.createElement('label');
-            label.style.display = 'flex';
-            label.style.alignItems = 'center';
-            label.style.gap = '6px';
-            const cb = document.createElement('input');
-            cb.type = 'checkbox';
-            cb.id = 'loopSeqCheckbox';
-            cb.checked = false;
-            label.appendChild(cb);
-            label.appendChild(document.createTextNode(' 🔁 循环'));
-            row.appendChild(label);
-            const firstRow = document.querySelector('#sequencePanel .param-row');
-            if (firstRow) {
-                firstRow.insertAdjacentElement('afterend', row);
-            } else {
-                sequencePanel.appendChild(row);
-            }
-            loopSeqCheckbox = cb;
-        } else {
-            loopSeqCheckbox = { checked: false };
-        }
-    }
-
+    const loopSeqCheckbox = document.getElementById('loopSeqCheckbox') || { checked: false };
     const continuousModeBtn = document.getElementById('continuousModeBtn');
     const sequenceModeBtn = document.getElementById('sequenceModeBtn');
     const timelineInput = document.getElementById('timelineInput');
