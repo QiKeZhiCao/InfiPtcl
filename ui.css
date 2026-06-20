@@ -1,0 +1,338 @@
+/* ===== 整体 UI 框架 — 布局 / 定位 / 尺寸 / flex ===== */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    overflow: hidden;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    padding: 10px 20px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 215, 120, 0.4);
+    z-index: 10;
+}
+
+.tool-group {
+    display: flex;
+    gap: 8px;
+    padding: 5px 14px;
+    border-radius: 40px;
+    align-items: center;
+    flex-wrap: nowrap;
+    border: 1px solid rgba(255,200,100,0.25);
+}
+
+input, select, button {
+    padding: 5px 12px;
+    border-radius: 28px;
+    cursor: pointer;
+}
+
+input[type="number"],
+input[type="text"],
+.time-input,
+.range-value {
+    border-radius: 16px;
+    padding: 5px 10px;
+    cursor: text;
+}
+
+input[type="range"] {
+    cursor: pointer;
+    accent-color: #ffaa66;
+}
+
+.control-panel input[type="range"] {
+    margin: 0;
+    padding: 0;
+}
+
+.color-preview {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.stat {
+    padding: 4px 14px;
+    border-radius: 32px;
+}
+
+.particle-count {
+    display: inline-block;
+    border-radius: 20px;
+    padding: 0 8px;
+    min-width: 40px;
+    text-align: center;
+}
+
+.title {
+    margin-right: auto;
+}
+
+.canvas-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* ========== 控制面板框架 ========== */
+.control-panel {
+    position: fixed;
+    right: 20px;
+    top: 80px;
+    width: 320px;
+    min-width: 320px;
+    max-width: 500px;
+    border-radius: 24px;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    cursor: ew-resize;
+    z-index: 30;
+    border-radius: 24px 0 0 24px;
+}
+
+body.resizing {
+    cursor: ew-resize;
+}
+
+.panel-content {
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    padding-bottom: 20px;
+    margin-left: 3px;
+    max-height: calc(100vh - 160px);
+}
+
+.control-panel h4 {
+    border-left: 4px solid #ffaa66;
+    padding-left: 10px;
+    margin-top: 12px;
+    margin-bottom: 10px;
+}
+
+.param-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+}
+
+.param-row > span:first-child {
+    min-width: 105px;
+    flex-shrink: 0;
+}
+
+.indent-line {
+    padding-left: 24px;
+    border-left: 1px solid rgba(255, 200, 100, 0.25);
+}
+
+.param-group {
+    margin-bottom: 12px;
+}
+
+.group-content {
+    padding-left: 24px;
+    border-left: 1px solid rgba(255,200,100,0.3);
+}
+
+.range-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.range-controls .range-value {
+    width: 55px;
+}
+
+.range-controls input[type="range"] {
+    flex: 1;
+    min-width: 40px;
+    margin: 0;
+    padding: 0;
+}
+
+.param-row > .range-value,
+.time-input {
+    width: 65px;
+}
+
+.time-input {
+    width: 75px;
+}
+
+.param-row input[type="range"] {
+    flex: 1;
+    min-width: 60px;
+}
+
+.file-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.file-name {
+    flex: 1;
+    min-width: 0;
+}
+
+.file-label,
+#exportBtn {
+    border-radius: 28px;
+    padding: 4px 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.mode-switch {
+    display: flex;
+    gap: 12px;
+    border-radius: 40px;
+    padding: 4px;
+    margin-bottom: 12px;
+}
+
+.mode-switch .mode-btn {
+    flex: 1;
+    text-align: center;
+}
+
+.tool-group button {
+    padding: 5px 12px;
+    border-radius: 28px;
+    cursor: pointer;
+    white-space: nowrap;
+    min-width: 70px;
+    text-align: center;
+}
+
+textarea {
+    width: 100%;
+    resize: vertical;
+    position: relative;
+    z-index: 1;
+}
+
+/* 播放条框架 */
+.playback-bar-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    border-top: 1px solid rgba(255, 200, 100, 0.4);
+    padding: 10px 10px;
+    z-index: 30;
+}
+
+.playback-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.progress-slider-wrapper {
+    flex: 1;
+    min-width: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.progress-slider {
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.current-time, .total-time {
+    min-width: 55px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+@media (max-width: 750px) {
+    .control-panel {
+        width: 280px;
+        right: 12px;
+    }
+    .param-row {
+        flex-wrap: wrap;
+    }
+    .range-controls {
+        width: 100%;
+        margin-top: 4px;
+    }
+    .control-panel input[type="range"] {
+        min-width: 60px;
+    }
+    .file-controls {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .file-name {
+        order: 1;
+        width: 100%;
+    }
+    .file-label {
+        order: 2;
+    }
+}
+
+@media (max-width: 750px) {
+    .playback-controls {
+        gap: 8px;
+        justify-content: flex-start;
+    }
+    .current-time, .total-time {
+        min-width: 45px;
+    }
+    .play-pause-btn {
+        padding: 4px 12px;
+    }
+    .progress-slider-wrapper {
+        min-width: 80px;
+    }
+}

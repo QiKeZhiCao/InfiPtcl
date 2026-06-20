@@ -1,7 +1,6 @@
+/* ===== 局部 UI 细节 — 颜色 / 字体 / 阴影 / 动效 ===== */
+
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
     -webkit-user-select: none;
     user-select: none;
 }
@@ -9,10 +8,6 @@
 body {
     background: #0a0c15;
     font-family: 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
-    overflow: hidden;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
     color: #f0f3fa;
 }
 
@@ -20,27 +15,13 @@ body {
     background: rgba(18, 20, 28, 0.96);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    padding: 10px 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    border-bottom: 1px solid rgba(255, 215, 120, 0.4);
-    z-index: 10;
     font-size: 13px;
     font-weight: 500;
     box-shadow: 0 6px 14px rgba(0,0,0,0.5);
 }
 
 .tool-group {
-    display: flex;
-    gap: 8px;
     background: rgba(0, 0, 0, 0.55);
-    padding: 5px 14px;
-    border-radius: 40px;
-    align-items: center;
-    flex-wrap: nowrap;
-    border: 1px solid rgba(255,200,100,0.25);
 }
 
 .tool-group label {
@@ -54,10 +35,7 @@ input, select, button {
     background: #1e1f2c;
     border: 1px solid #6a6f9a;
     color: white;
-    padding: 5px 12px;
-    border-radius: 28px;
     font-size: 12px;
-    cursor: pointer;
     transition: 0.2s;
     font-weight: 400;
     font-family: inherit;
@@ -70,18 +48,10 @@ input[type="text"],
     background: #1a1c2a;
     border: 1px solid #6a6f9a;
     color: #ffd89a;
-    border-radius: 16px;
-    padding: 5px 10px;
     font-family: inherit;
     font-size: 12px;
     text-align: right;
-    cursor: text;
     font-weight: 400;
-}
-
-input[type="range"] {
-    cursor: pointer;
-    accent-color: #ffaa66;
 }
 
 button:hover {
@@ -90,17 +60,11 @@ button:hover {
 }
 
 .color-preview {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
     border: 2px solid #ffdd99;
-    cursor: pointer;
 }
 
 .stat {
     background: #00000099;
-    padding: 4px 14px;
-    border-radius: 32px;
     font-size: 13px;
     font-weight: bold;
     color: #ffdd99;
@@ -108,17 +72,11 @@ button:hover {
 }
 
 .particle-count {
-    display: inline-block;
     background: #000000aa;
-    border-radius: 20px;
-    padding: 0 8px;
-    min-width: 40px;
-    text-align: center;
 }
 
 .title {
     font-weight: bold;
-    margin-right: auto;
     background: linear-gradient(135deg, #ffcc88, #88ccff);
     -webkit-background-clip: text;
     background-clip: text;
@@ -126,121 +84,66 @@ button:hover {
 }
 
 .canvas-container {
-    flex: 1;
-    position: relative;
     background: #000;
-    overflow: hidden;
 }
 
 canvas {
-    display: block;
-    width: 100%;
-    height: 100%;
     cursor: crosshair;
 }
 
-/* ========== 控制面板结构 ========== */
+/* ========== 控制面板细节 ========== */
 .control-panel {
-    position: fixed;
-    right: 20px;
-    top: 80px;
-    width: 320px;
-    min-width: 320px;
-    max-width: 500px;
     background: rgba(12, 14, 24, 0.96);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
-    border-radius: 24px;
     border: 1px solid rgba(255, 200, 100, 0.45);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
-    z-index: 20;
     font-size: 12px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
 }
 
 .resize-handle {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    cursor: ew-resize;
     background: rgba(255, 200, 100, 0.3);
     transition: background 0.2s;
-    z-index: 30;
-    border-radius: 24px 0 0 24px;
 }
+
 .resize-handle:hover {
     background: rgba(255, 200, 100, 0.8);
 }
 
-.panel-content {
-    overflow-y: auto;
-    overflow-x: hidden;
-    padding: 16px;
-    padding-bottom: 20px;
-    margin-left: 3px;
-    max-height: calc(100vh - 160px);
+body.resizing {
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .panel-content::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
+
 .panel-content::-webkit-scrollbar-track {
     background: #2a2e3c;
     border-radius: 10px;
 }
+
 .panel-content::-webkit-scrollbar-thumb {
     background: #ffaa66;
     border-radius: 10px;
 }
+
 .panel-content::-webkit-scrollbar-thumb:hover {
     background: #ffcc88;
 }
 
-body.resizing {
-    -webkit-user-select: none;
-    user-select: none;
-    cursor: ew-resize;
-}
-
 .control-panel h4 {
-    margin-bottom: 10px;
     color: #ffcf8a;
-    border-left: 4px solid #ffaa66;
-    padding-left: 10px;
     font-size: 14px;
-    margin-top: 12px;
-}
-
-.param-row {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 12px;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 8px;
 }
 
 .param-row > span:first-child {
     font-weight: 500;
     color: #f0e6d2;
-    min-width: 105px;
-    flex-shrink: 0;
 }
 
-/* 统一缩进：padding-left:24px，左边框 */
-.indent-line {
-    padding-left: 24px;
-    border-left: 1px solid rgba(255, 200, 100, 0.25);
-}
-
-.param-group {
-    margin-bottom: 12px;
-}
 .group-label {
     font-weight: 500;
     color: #ffcf8a;
@@ -248,60 +151,19 @@ body.resizing {
     margin-bottom: 6px;
     margin-left: 0;
 }
-.group-content {
-    padding-left: 24px;
-    border-left: 1px solid rgba(255,200,100,0.3);
-}
 
-.range-controls {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    flex: 1;
-    min-width: 0;
-    flex-wrap: wrap;
-}
-.range-controls .range-value {
-    width: 55px;
-}
-.range-controls input[type="range"] {
-    flex: 1;
-    min-width: 40px;
-    margin: 0;
-    padding: 0;
-}
 .range-sep {
     flex-shrink: 0;
     color: #ffffff;
     margin: 0 2px;
 }
+
 .range-unit {
     flex-shrink: 0;
     color: #ffffff;
     margin-left: 2px;
 }
 
-.param-row > .range-value,
-.time-input {
-    width: 65px;
-}
-.time-input {
-    width: 75px;
-}
-
-.param-row input[type="range"] {
-    flex: 1;
-    min-width: 60px;
-}
-
-.file-controls {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex: 1;
-    justify-content: flex-end;
-    flex-wrap: wrap;
-}
 .file-name {
     text-align: right;
     color: #ffd89a;
@@ -309,36 +171,29 @@ body.resizing {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex: 1;
-    min-width: 0;
 }
+
 .file-label {
     background: #3f4668;
-    border-radius: 28px;
-    padding: 4px 12px;
-    cursor: pointer;
-    white-space: nowrap;
     font-size: 12px;
     font-weight: 400;
     border: 1px solid #6a6f9a;
     color: white;
 }
+
 .file-label:hover {
     background: #4a4e72;
     border-color: #ffc285;
 }
-/* 统一按钮样式（开始渲染） */
+
 #exportBtn {
     background: #3f4668;
-    border-radius: 28px;
-    padding: 4px 12px;
-    cursor: pointer;
-    white-space: nowrap;
     font-size: 12px;
     font-weight: 400;
     border: 1px solid #6a6f9a;
     color: white;
 }
+
 #exportBtn:hover {
     background: #4a4e72;
     border-color: #ffc285;
@@ -346,10 +201,6 @@ body.resizing {
 
 .control-panel input[type="range"],
 .range-controls input[type="range"] {
-    flex: 1;
-    min-width: 40px;
-    margin: 0;
-    padding: 0;
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
@@ -358,6 +209,7 @@ body.resizing {
     outline: none;
     vertical-align: middle;
 }
+
 .control-panel input[type="range"]::-webkit-slider-thumb,
 .range-controls input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
@@ -369,6 +221,7 @@ body.resizing {
     border: none;
     margin-top: 0;
 }
+
 .control-panel input[type="range"]::-moz-range-thumb,
 .range-controls input[type="range"]::-moz-range-thumb {
     width: 12px;
@@ -378,12 +231,14 @@ body.resizing {
     cursor: pointer;
     border: none;
 }
+
 .control-panel input[type="range"]::-moz-range-track,
 .range-controls input[type="range"]::-moz-range-track {
     background: #2a2e42;
     height: 4px;
     border-radius: 2px;
 }
+
 .control-panel input[type="range"]::-moz-focus-outer,
 .range-controls input[type="range"]::-moz-focus-outer {
     border: 0;
@@ -399,6 +254,7 @@ input[type="number"] {
     -moz-appearance: textfield;
     appearance: textfield;
 }
+
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
@@ -411,46 +267,36 @@ hr {
 }
 
 .mode-switch {
-    display: flex;
-    gap: 12px;
     background: #1e1f2c;
-    border-radius: 40px;
-    padding: 4px;
-    margin-bottom: 12px;
 }
+
 .mode-switch .mode-btn {
-    flex: 1;
-    text-align: center;
     background: transparent;
     border: 1px solid #6a6f9a;
     font-weight: 400;
 }
+
 .mode-switch .mode-active {
     background: #5a5e8a;
     border-color: #ffaa66;
     box-shadow: 0 0 6px rgba(255,170,102,0.5);
 }
 
-/* 工具栏按钮统一样式 */
 .tool-group button {
     background: #1e1f2c;
     border: 1px solid #6a6f9a;
     color: white;
-    padding: 5px 12px;
-    border-radius: 28px;
     font-size: 12px;
-    cursor: pointer;
     transition: 0.2s;
     font-weight: 400;
     font-family: inherit;
-    white-space: nowrap;
-    min-width: 70px;
-    text-align: center;
 }
+
 .tool-group button:hover {
     background: #4a4e72;
     border-color: #ffc285;
 }
+
 .tool-group button.active {
     background: #5a5e8a;
     border-color: #ffaa66;
@@ -465,32 +311,31 @@ textarea {
     padding: 8px;
     font-family: inherit;
     font-size: 11px;
-    width: 100%;
-    resize: vertical; /* 保留垂直拖拽，但自定义样式 */
-    position: relative;
-    z-index: 1;
 }
 
-/* 时间戳输入框滚动条及右下角手柄样式 */
 #timelineInput::-webkit-scrollbar {
     width: 6px;
     height: 6px;
 }
+
 #timelineInput::-webkit-scrollbar-track {
     background: #2a2e3c;
     border-radius: 10px;
 }
+
 #timelineInput::-webkit-scrollbar-thumb {
     background: #ffaa66;
     border-radius: 10px;
 }
+
 #timelineInput::-webkit-scrollbar-thumb:hover {
     background: #ffcc88;
 }
+
 #timelineInput::-webkit-scrollbar-button {
     display: none;
 }
-/* 自定义右下角拖拽手柄样式，与滚动条匹配 */
+
 #timelineInput::-webkit-resizer {
     background: #ffaa66;
     border-radius: 0 0 4px 0;
@@ -505,36 +350,7 @@ textarea {
     margin-top: 6px;
 }
 
-@media (max-width: 750px) {
-    .control-panel {
-        width: 280px;
-        right: 12px;
-    }
-    .param-row {
-        flex-wrap: wrap;
-    }
-    .range-controls {
-        width: 100%;
-        margin-top: 4px;
-    }
-    .control-panel input[type="range"] {
-        min-width: 60px;
-    }
-    .file-controls {
-        width: 100%;
-        justify-content: flex-start;
-    }
-    .file-name {
-        order: 1;
-        width: 100%;
-        text-align: left;
-    }
-    .file-label {
-        order: 2;
-    }
-}
-
-/* ===== 开关样式 ===== */
+/* ===== 开关 ===== */
 .switch {
     position: relative;
     display: inline-flex;
@@ -544,11 +360,13 @@ textarea {
     font-size: 12px;
     color: #f0f3fa;
 }
+
 .switch input {
     opacity: 0;
     width: 0;
     height: 0;
 }
+
 .slider {
     position: relative;
     display: inline-block;
@@ -559,6 +377,7 @@ textarea {
     border-radius: 20px;
     flex-shrink: 0;
 }
+
 .slider::before {
     content: "";
     position: absolute;
@@ -570,9 +389,11 @@ textarea {
     transition: .3s;
     border-radius: 50%;
 }
+
 input:checked + .slider {
     background-color: #ffaa66;
 }
+
 input:checked + .slider::before {
     transform: translateX(14px);
 }
@@ -591,41 +412,28 @@ input:checked + .slider::before {
     color: white;
     text-align: center;
 }
+
 .full-width-btn:hover {
     background: #4a4e72;
     border-color: #ffc285;
 }
 
-/* 选择框文字颜色 */
+/* 选择框 */
 select {
     color: white;
 }
+
 select option {
     background: #1e1f2c;
     color: white;
 }
 
+/* 播放条细节 */
 .playback-bar-container {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
     background: rgba(0, 0, 0, 0.85);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255, 200, 100, 0.4);
-    padding: 10px 10px;
-    z-index: 30;
     font-family: inherit;
-}
-
-.playback-controls {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: nowrap;
-    justify-content: space-between;
-    width: 100%;
 }
 
 .play-pause-btn {
@@ -640,6 +448,7 @@ select option {
     font-family: inherit;
     font-weight: 400;
 }
+
 .play-pause-btn:hover {
     background: #4a4e72;
 }
@@ -647,22 +456,10 @@ select option {
 .current-time, .total-time {
     font-size: 14px;
     color: #ffdd99;
-    min-width: 55px;
-    text-align: center;
-    flex-shrink: 0;
     font-family: inherit;
 }
 
-.progress-slider-wrapper {
-    flex: 1;
-    min-width: 0;
-    margin: 0;
-    display: flex;
-    align-items: center;
-}
-
 .progress-slider {
-    width: 100%;
     height: 4px;
     -webkit-appearance: none;
     appearance: none;
@@ -670,10 +467,9 @@ select option {
     border-radius: 5px;
     outline: none;
     box-sizing: border-box;
-    padding: 0;
-    margin: 0;
     transform: translateY(-1px);
 }
+
 .progress-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     width: 14px;
@@ -683,6 +479,7 @@ select option {
     cursor: pointer;
     box-shadow: 0 0 4px #ffcc88;
 }
+
 .progress-slider::-moz-range-thumb {
     width: 14px;
     height: 14px;
@@ -691,6 +488,7 @@ select option {
     cursor: pointer;
     border: none;
 }
+
 .progress-slider::-moz-range-track {
     background: #3a3e5a;
     height: 4px;
@@ -698,19 +496,13 @@ select option {
 }
 
 @media (max-width: 750px) {
-    .playback-controls {
-        gap: 8px;
-        justify-content: flex-start;
-    }
     .current-time, .total-time {
         font-size: 11px;
-        min-width: 45px;
     }
     .play-pause-btn {
-        padding: 4px 12px;
         font-size: 12px;
     }
-    .progress-slider-wrapper {
-        min-width: 80px;
+    .file-name {
+        text-align: left;
     }
 }

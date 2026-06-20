@@ -51,7 +51,7 @@
     
     // 等待所有纹理完全解码
     async function waitForTextures() {
-        const textures = window.textureImages || [];
+        const textures = window._particleTextures || [];
         if (textures.length === 0) return;
         const promises = textures.map(img => {
             if (img.complete && img.naturalWidth > 0) return Promise.resolve();
@@ -206,7 +206,11 @@
         }
         
         await waitForTextures();
-        // 【修复】删除手动清屏，改用标准步长渲染起始帧
+        // 连续模式：保证第一帧发射至少一个粒子（低速时累加器可能不足）
+        if (!isSequenceMode) {
+            window.burstEmit(Math.max(1, Math.floor(window._particleParams.emitRate * step)));
+        }
+
         window._stepSimulation(step);
         await waitForTextures();
         
