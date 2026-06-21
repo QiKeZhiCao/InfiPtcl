@@ -287,27 +287,30 @@
                 ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
                 const text = p.text;
                 const letterSpacing = styles.letterSpacing || 0;
+                let lineLeft, lineRight;
                 if (letterSpacing !== 0) {
+                    const charWidths = [];
                     let totalWidth = 0;
                     for (let i = 0; i < text.length; i++) {
-                        const char = text[i];
-                        const metrics = ctx.measureText(char);
+                        const metrics = ctx.measureText(text[i]);
+                        charWidths.push(metrics.width);
                         totalWidth += metrics.width + letterSpacing;
                     }
                     const startX = -totalWidth / 2 + (letterSpacing / 2);
                     let x = startX;
                     for (let i = 0; i < text.length; i++) {
-                        const char = text[i];
-                        const metrics = ctx.measureText(char);
-                        ctx.fillText(char, x, 0);
-                        x += metrics.width + letterSpacing;
+                        ctx.fillText(text[i], x, 0);
+                        x += charWidths[i] + letterSpacing;
                     }
+                    lineLeft = startX - charWidths[0] / 2;
+                    lineRight = startX + totalWidth - letterSpacing - charWidths[text.length - 1] / 2;
                 } else {
                     ctx.fillText(text, 0, 0);
+                    const metrics = ctx.measureText(text);
+                    lineLeft = -metrics.width / 2;
+                    lineRight = metrics.width / 2;
                 }
                 if (styles.underline || styles.strike) {
-                    const metrics = ctx.measureText(text);
-                    const width = metrics.width;
                     let lineWidth = Math.max(1, fontSize * 0.08);
                     if (fontWeight === 'bold' || fontWeight === '700') lineWidth *= 1.2;
                     ctx.strokeStyle = `rgba(255,255,255,${p.alpha})`;
@@ -315,15 +318,15 @@
                     if (styles.underline) {
                         const yPos = fontSize * 0.45;
                         ctx.beginPath();
-                        ctx.moveTo(-width/2, yPos);
-                        ctx.lineTo(width/2, yPos);
+                        ctx.moveTo(lineLeft, yPos);
+                        ctx.lineTo(lineRight, yPos);
                         ctx.stroke();
                     }
                     if (styles.strike) {
                         const yPos = 0;
                         ctx.beginPath();
-                        ctx.moveTo(-width/2, yPos);
-                        ctx.lineTo(width/2, yPos);
+                        ctx.moveTo(lineLeft, yPos);
+                        ctx.lineTo(lineRight, yPos);
                         ctx.stroke();
                     }
                 }
