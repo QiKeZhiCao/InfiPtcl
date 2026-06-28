@@ -533,6 +533,56 @@
         if (coordSpan && window._particleEmitterPos) {
             coordSpan.innerText = `(${Math.floor(window._particleEmitterPos.x)}, ${Math.floor(window._particleEmitterPos.y)})`;
         }
+
+        // ---- Fused navigation tabs ----
+        const fusedNav = document.querySelector('.fused-nav');
+        const panel = document.querySelector('.control-panel');
+        const panelContent = document.querySelector('.panel-content');
+        if (fusedNav && panel && panelContent) {
+            const tabs = fusedNav.querySelectorAll('.fn-tab');
+            const h4s = panelContent.querySelectorAll('h4');
+
+            function positionFusedNav() {
+                const panelRect = panel.getBoundingClientRect();
+                fusedNav.style.right = (window.innerWidth - panelRect.left - 1) + 'px';
+            }
+
+            function updateActiveTab() {
+                const containerRect = panelContent.getBoundingClientRect();
+                const threshold = containerRect.top + 55;
+                let activeIdx = 0;
+                h4s.forEach((h4, i) => {
+                    if (h4.getBoundingClientRect().height > 0 && h4.getBoundingClientRect().top < threshold) activeIdx = i;
+                });
+                tabs.forEach((tab, i) => tab.classList.toggle('active', i === activeIdx));
+            }
+
+            fusedNav.addEventListener('click', (e) => {
+                const tab = e.target.closest('.fn-tab');
+                if (!tab) return;
+                const idx = parseInt(tab.dataset.idx);
+                const target = h4s[idx];
+                if (target && target.getBoundingClientRect().height > 0) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+
+            panelContent.addEventListener('scroll', updateActiveTab);
+
+            setTimeout(() => {
+                const firstH4 = h4s[0];
+                if (firstH4) {
+                    fusedNav.style.top = firstH4.getBoundingClientRect().top + 'px';
+                }
+                positionFusedNav();
+                updateActiveTab();
+            }, 50);
+
+            const ro = new ResizeObserver(() => positionFusedNav());
+            ro.observe(panel);
+
+            window._updateFusedNav = positionFusedNav;
+        }
     }
 
     if (document.readyState === 'loading') {

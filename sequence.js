@@ -247,6 +247,11 @@
     
     window._onSequenceUpdate = updateSequence;
     
+    function seqTabDisabled(disabled) {
+        const tab = document.querySelector('.fn-tab[data-idx="4"]');
+        if (tab) tab.classList.toggle('disabled', disabled);
+    }
+
     function setMode(continuous) {
         window._isContinuousMode = continuous;
         if(continuous){
@@ -257,14 +262,16 @@
             if (seqStatusMsg) seqStatusMsg.innerText = '🎛️ 连续发射模式 （可调节速率）';
             if (sequencePanel) sequencePanel.style.display = 'none';
             if (modeSeparator) modeSeparator.style.display = 'none';
+            seqTabDisabled(true);
         } else {
             if (sequenceModeBtn) sequenceModeBtn.classList.add('mode-active');
             if (continuousModeBtn) continuousModeBtn.classList.remove('mode-active');
             if (playbackBar) playbackBar.style.display = 'flex';
             if (sequencePanel) sequencePanel.style.display = 'block';
             if (modeSeparator) modeSeparator.style.display = 'block';
-            if (seqStatusMsg) seqStatusMsg.innerText = currentMidiTracks.length ? `⏱️ 序列模式 当前轨道已加载` : '⏱️ 序列模式 请先上传MIDI或手动输入时间戳';
+            if (seqStatusMsg) seqStatusMsg.innerText = currentMidiTracks.length ? '⏱️ 序列模式 当前轨道已加载' : '⏱️ 序列模式 请先上传MIDI或手动输入时间戳';
             if (!seqPlaybackActive && !seqPaused && seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '▶️ 播放 （空格）';
+            seqTabDisabled(false);
         }
     }
     
