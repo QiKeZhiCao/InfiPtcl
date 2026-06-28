@@ -134,6 +134,28 @@ body.resizing {
     background: #ffcc88;
 }
 
+.panel-content {
+    scrollbar-width: thin;
+    scrollbar-color: #ffaa66 #2a2e3c;
+}
+
+.texture-order-list::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+.texture-order-list::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 10px;
+}
+.texture-order-list::-webkit-scrollbar-thumb {
+    background: #ffaa66;
+    border-radius: 10px;
+}
+.texture-order-list {
+    scrollbar-width: thin;
+    scrollbar-color: #ffaa66 #2a2e3c;
+}
+
 .control-panel h4 {
     color: #ffcf8a;
     font-size: 14px;
@@ -337,8 +359,14 @@ textarea {
 }
 
 #timelineInput::-webkit-resizer {
-    background: #ffaa66;
-    border-radius: 0 0 4px 0;
+    background: linear-gradient(135deg, transparent 10px, #ffaa66 10px);
+    background-size: 14px 14px;
+    background-repeat: no-repeat;
+}
+
+#timelineInput {
+    scrollbar-width: thin;
+    scrollbar-color: #ffaa66 #2a2e3c;
 }
 
 .seq-status {

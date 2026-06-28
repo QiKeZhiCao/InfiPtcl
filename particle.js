@@ -40,6 +40,7 @@
     window._isContinuousMode = true;
 
     let textureImages = [];
+    window._particleTextures = [];
 
     // 累加器变量（用于均匀发射）
     let emitAccumulator = 0;
@@ -53,6 +54,9 @@
     window._particleSelectedFont = selectedFont;
     window._particleFontStyles = fontStyles;
     window._randomRateMode = false;
+    window._particleAnimMode = 0;
+    window._particleAnimFps = 10;
+    window._particleSimTime = 0;
 
     window._resetDefaultTexture = function() {
         createDefaultTexture();
@@ -100,6 +104,7 @@
             window._particleTextures = textureImages;
             const fileNameSpan = document.getElementById('textureFileName');
             if (fileNameSpan) fileNameSpan.innerText = '默认纹理（1张）';
+            if (window._updateTextureOrderList) window._updateTextureOrderList();
         };
         img.src = canvasTex.toDataURL();
     }
@@ -112,7 +117,10 @@
             emitterPos: { ...emitterPos },
             followMouse: followMouse,
             emitActive: emitActive,
-            params: JSON.parse(JSON.stringify(params))
+            params: JSON.parse(JSON.stringify(params)),
+            animMode: window._particleAnimMode,
+            animFps: window._particleAnimFps,
+            simTime: window._particleSimTime
         };
     };
     window._restoreParticleState = function(state) {
@@ -121,6 +129,9 @@
         followMouse = state.followMouse;
         emitActive = state.emitActive;
         Object.assign(params, state.params);
+        window._particleAnimMode = state.animMode || 0;
+        window._particleAnimFps = state.animFps || 10;
+        window._particleSimTime = state.simTime || 0;
         updateParticleCount();
     };
     window._clearParticles = function() {
@@ -163,6 +174,8 @@
         let text = '';
         let font = window._particleSelectedFont || 'default';
         let styles = window._particleFontStyles || { italic: false, underline: false, strike: false, letterSpacing: 0, weight: 'normal' };
+        let textureIndex = 0;
+        let birthTime = 0;
         
         if (isText) {
             const lines = (window._particleTextContent || '粒子').split('\n').filter(line => line.trim() !== '');
@@ -174,6 +187,16 @@
             if (texs.length > 0) {
                 const idx = Math.floor(Math.random() * texs.length);
                 texture = texs[idx];
+                textureIndex = idx;
+                if (window._particleAnimMode === 1) {
+                    textureIndex = Math.floor(Math.random() * texs.length);
+                    texture = texs[textureIndex];
+                    birthTime = window._particleSimTime;
+                } else if (window._particleAnimMode === 2) {
+                    textureIndex = 0;
+                    texture = texs[0];
+                    birthTime = window._particleSimTime;
+                }
             }
         }
         
@@ -188,13 +211,14 @@
             isText: isText,
             text: text,
             font: font,
-            styles: styles
+            styles: styles,
+            textureIndex: textureIndex,
+            birthTime: birthTime
         };
     }
 
     window.burstEmit = function(count) {
         const texs = window._particleTextures || [];
-        if (texs.length === 0 && !window._particleTextMode) return;
         const ex = emitterPos.x, ey = emitterPos.y;
         for (let i = 0; i < count; i++) {
             if (particles.length >= params.maxParticles) particles.shift();
@@ -331,19 +355,25 @@
                     }
                 }
             } else {
-                const tex = p.texture;
-                if (tex && tex.complete) {
-                    ctx.drawImage(tex, -half, -half, p.size, p.size);
+                const texs = window._particleTextures || [];
+                let useTex = p.texture;
+                if (texs.length > 1 && window._particleAnimMode !== 0 && p.textureIndex !== undefined) {
+                    const fps = window._particleAnimFps || 10;
+                    const elapsed = window._particleSimTime - (p.birthTime || 0);
+                    const totalFrames = Math.floor(elapsed * fps);
+                    let curFrame = ((p.textureIndex || 0) + totalFrames) % texs.length;
+                    if (curFrame < 0) curFrame += texs.length;
+                    useTex = texs[curFrame];
+                }
+                if (useTex && useTex.complete) {
+                    ctx.drawImage(useTex, -half, -half, p.size, p.size);
+                } else if (texs.length > 0 && texs[0] && texs[0].complete) {
+                    ctx.drawImage(texs[0], -half, -half, p.size, p.size);
                 } else {
-                    const texs = window._particleTextures || [];
-                    if (texs.length > 0 && texs[0] && texs[0].complete) {
-                        ctx.drawImage(texs[0], -half, -half, p.size, p.size);
-                    } else {
-                        ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, half, 0, Math.PI*2);
-                        ctx.fill();
-                    }
+                    ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
+                    ctx.beginPath();
+                    ctx.arc(0, 0, half, 0, Math.PI*2);
+                    ctx.fill();
                 }
             }
             ctx.restore();
@@ -393,6 +423,9 @@
         textContent = window._particleTextContent;
         selectedFont = window._particleSelectedFont;
         fontStyles = window._particleFontStyles;
+        window._particleAnimMode = window._particleAnimMode || 0;
+        window._particleAnimFps = window._particleAnimFps || 10;
+        window._particleSimTime += delta;
         updatePhysics(delta);
         emitContinuous(delta);
         setBackground();
@@ -403,6 +436,9 @@
     
     window._stepSimulation = function(deltaSec) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        window._particleAnimMode = window._particleAnimMode || 0;
+        window._particleAnimFps = window._particleAnimFps || 10;
+        window._particleSimTime += deltaSec;
         updatePhysics(deltaSec);
         emitContinuous(deltaSec);
         setBackground();
