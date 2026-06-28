@@ -17,6 +17,7 @@
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
         document.body.classList.remove('resizing');
+        if (window._updateFusedNav) window._updateFusedNav();
     }
 
     handle.addEventListener('mousedown', (e) => {
