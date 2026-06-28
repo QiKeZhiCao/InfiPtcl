@@ -53,28 +53,32 @@
             const minSpan = document.getElementById(minId + 'Val');
             const maxSpan = document.getElementById(maxId + 'Val');
             if (!minSlider || !maxSlider) return;
-            const update = () => {
+            const sync = (source) => {
                 let minVal = isFloat ? parseFloat(minSlider.value) : parseInt(minSlider.value);
                 let maxVal = isFloat ? parseFloat(maxSlider.value) : parseInt(maxSlider.value);
+                if (minVal > maxVal) {
+                    if (source === 'min') {
+                        maxVal = minVal;
+                        maxSlider.value = maxVal;
+                    } else {
+                        minVal = maxVal;
+                        minSlider.value = minVal;
+                    }
+                }
                 window._particleParams[paramMin] = minVal;
                 window._particleParams[paramMax] = maxVal;
                 if (minSpan) minSpan.value = minVal;
                 if (maxSpan) maxSpan.value = maxVal;
-                if (minVal > maxVal) {
-                    maxSlider.value = minVal;
-                    window._particleParams[paramMax] = minVal;
-                    if (maxSpan) maxSpan.value = minVal;
-                }
             };
-            minSlider.addEventListener('input', update);
-            maxSlider.addEventListener('input', update);
+            minSlider.addEventListener('input', () => sync('min'));
+            maxSlider.addEventListener('input', () => sync('max'));
             if (minSpan) {
                 minSpan.addEventListener('change', () => {
                     let v = isFloat ? parseFloat(minSpan.value) : parseInt(minSpan.value);
                     if (isNaN(v)) return;
                     v = Math.min(parseFloat(minSlider.max), Math.max(parseFloat(minSlider.min), v));
                     minSlider.value = v;
-                    update();
+                    sync('min');
                 });
             }
             if (maxSpan) {
@@ -83,10 +87,10 @@
                     if (isNaN(v)) return;
                     v = Math.min(parseFloat(maxSlider.max), Math.max(parseFloat(maxSlider.min), v));
                     maxSlider.value = v;
-                    update();
+                    sync('max');
                 });
             }
-            update();
+            sync();
         }
 
         bindRange('fadeStartMin', 'fadeStartMax', 'fadeStartMin', 'fadeStartMax', true, 0.1);
@@ -234,6 +238,8 @@
                         loadedCount++;
                         if (loadedCount === files.length) {
                             window._particleTextures = imgs;
+                            window._textureFileNames = fileNames;
+                            updateTextureOrderList();
                             if (textureFileNameSpan) textureFileNameSpan.innerText = fileNames.join(', ');
                             const maxDim = Math.max(imgs[0].width, imgs[0].height);
                             let newMin = Math.min(80, Math.max(8, Math.floor(maxDim * 0.5)));
@@ -260,7 +266,168 @@
         if (resetTextureBtn) {
             resetTextureBtn.addEventListener('click', () => {
                 window._resetDefaultTexture();
+                window._textureFileNames = [];
+                updateTextureOrderList();
                 if (textureFileNameSpan) textureFileNameSpan.innerText = '默认纹理（1张）';
+            });
+        }
+
+        // ---- 图片动画模式 ----
+        window._particleAnimMode = 0;
+        window._particleAnimFps = 10;
+        window._textureFileNames = [];
+
+        const animModeSelect = document.getElementById('animModeSelect');
+        const animGroup = document.getElementById('animGroup');
+        const animFpsSlider = document.getElementById('animFps');
+        const animFpsVal = document.getElementById('animFpsVal');
+
+        if (animModeSelect) {
+            function syncAnimMode() {
+                window._particleAnimMode = parseInt(animModeSelect.value);
+            }
+            animModeSelect.addEventListener('change', syncAnimMode);
+            syncAnimMode();
+        }
+
+        if (animFpsSlider && animFpsVal) {
+            const updateAnimFps = () => {
+                const v = parseInt(animFpsSlider.value);
+                window._particleAnimFps = v;
+                animFpsVal.value = v;
+            };
+            animFpsSlider.addEventListener('input', updateAnimFps);
+            animFpsVal.addEventListener('change', () => {
+                let v = parseInt(animFpsVal.value);
+                v = Math.min(parseInt(animFpsSlider.max), Math.max(parseInt(animFpsSlider.min), v));
+                animFpsSlider.value = v;
+                window._particleAnimFps = v;
+            });
+            updateAnimFps();
+        }
+
+        // Drag-reorder state (persists across updateTextureOrderList calls)
+        let _dragFromIdx = -1;
+        let _placeholderIdx = -1;
+        let _overItem = false;
+
+        function _resetDragState() {
+            _placeholderIdx = -1;
+            _dragFromIdx = -1;
+            _overItem = false;
+        }
+
+        function updateTextureOrderList() {
+            window._updateTextureOrderList = updateTextureOrderList;
+            const container = document.getElementById('textureOrderList');
+            if (!container) return;
+            const texs = window._particleTextures || [];
+
+            if (texs.length < 2) {
+                if (animGroup) animGroup.style.display = 'none';
+                return;
+            }
+
+            if (animGroup) animGroup.style.display = '';
+
+            container.innerHTML = '';
+
+            // Add container drag handlers once
+            if (!container._hasDragHandlers) {
+                container._hasDragHandlers = true;
+
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (_overItem) { _overItem = false; return; }
+                    // Only enter gap mode if cursor is directly on container
+                    if (e.target !== container) return;
+                    if (_placeholderIdx === -1) return;
+                    container.querySelector('.texture-order-placeholder')?.remove();
+                    _placeholderIdx = -1;
+                });
+
+                container.addEventListener('dragleave', (e) => {
+                    if (!container.contains(e.relatedTarget)) _resetDragState();
+                });
+            }
+
+            texs.forEach((img, i) => {
+                const item = document.createElement('div');
+                item.className = 'texture-order-item';
+                item.draggable = true;
+                item.dataset.index = i;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = 80;
+                canvas.height = 80;
+                const c = canvas.getContext('2d');
+                c.drawImage(img, 0, 0, 80, 80);
+                const thumb = document.createElement('img');
+                thumb.className = 'thumb';
+                thumb.src = canvas.toDataURL();
+                thumb.alt = '';
+
+                const idxBadge = document.createElement('span');
+                idxBadge.className = 'item-idx';
+                idxBadge.textContent = i + 1;
+
+                item.appendChild(thumb);
+                item.appendChild(idxBadge);
+
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.effectAllowed = 'move';
+                    _dragFromIdx = i;
+                    item.classList.add('dragging');
+                    requestAnimationFrame(() => { item.style.display = 'none'; });
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    e.dataTransfer.dropEffect = 'move';
+                    _overItem = true;
+                    _placeholderIdx = i;
+
+                    let ph = container.querySelector('.texture-order-placeholder');
+                    if (!ph) {
+                        ph = document.createElement('div');
+                        ph.className = 'texture-order-placeholder';
+                        container.appendChild(ph);
+                    }
+                    const iRect = item.getBoundingClientRect();
+                    const cRect = container.getBoundingClientRect();
+                    const sTop = container.scrollTop;
+                    const sLeft = container.scrollLeft;
+                    ph.style.cssText = `left:${iRect.left - cRect.left + sLeft}px;top:${iRect.top - cRect.top + sTop}px;width:${iRect.width}px;height:${iRect.height}px`;
+                });
+
+                item.addEventListener('dragleave', (e) => {
+                    if (!container.contains(e.relatedTarget)) _resetDragState();
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (_placeholderIdx >= 0 && _dragFromIdx >= 0) {
+                        const arr = window._particleTextures || [];
+                        const nameArr = window._textureFileNames || [];
+                        const [movedImg] = arr.splice(_dragFromIdx, 1);
+                        const [movedName] = nameArr.splice(_dragFromIdx, 1);
+                        const targetIdx = _dragFromIdx < _placeholderIdx ? _placeholderIdx - 1 : _placeholderIdx;
+                        arr.splice(targetIdx, 0, movedImg);
+                        nameArr.splice(targetIdx, 0, movedName);
+                        window._particleTextures = arr;
+                        window._textureFileNames = nameArr;
+                    }
+                    _resetDragState();
+                    updateTextureOrderList();
+                });
+
+                item.addEventListener('dragend', () => {
+                    _resetDragState();
+                    updateTextureOrderList();
+                });
+
+                container.appendChild(item);
             });
         }
 
@@ -278,7 +445,7 @@
         function updateAppearance() {
             const mode = appearanceMode.value;
             if (mode === 'image') {
-                imageSettings.style.display = 'flex';
+                imageSettings.style.display = 'block';
                 textSettings.style.display = 'none';
                 textFontRow.style.display = 'none';
                 textStyleRow.style.display = 'none';
