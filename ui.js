@@ -529,9 +529,17 @@
 
         updateFontStyles();
 
-        const coordSpan = document.getElementById('emitterCoord');
-        if (coordSpan && window._particleEmitterPos) {
-            coordSpan.innerText = `(${Math.floor(window._particleEmitterPos.x)}, ${Math.floor(window._particleEmitterPos.y)})`;
+        if (window._updateCoordDisplay) window._updateCoordDisplay();
+        const exInput = document.getElementById('emitterX');
+        const eyInput = document.getElementById('emitterY');
+        if (exInput && eyInput) {
+            function onCoordInput() {
+                const x = parseInt(exInput.value) || 0;
+                const y = parseInt(eyInput.value) || 0;
+                if (window._setEmitterPos) window._setEmitterPos(x, y);
+            }
+            exInput.addEventListener('input', onCoordInput);
+            eyInput.addEventListener('input', onCoordInput);
         }
 
         // ---- Fused navigation tabs ----

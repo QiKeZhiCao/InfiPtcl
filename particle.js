@@ -61,12 +61,21 @@
     window._resetDefaultTexture = function() {
         createDefaultTexture();
     };
+    function updateCoordDisplay() {
+        const ex = document.getElementById('emitterX');
+        const ey = document.getElementById('emitterY');
+        if (ex && ey && window._particleEmitterPos) {
+            ex.value = Math.floor(window._particleEmitterPos.x);
+            ey.value = Math.floor(window._particleEmitterPos.y);
+        }
+    }
+    window._updateCoordDisplay = updateCoordDisplay;
+
     window._setEmitterPos = function(x, y) {
         emitterPos.x = x;
         emitterPos.y = y;
         window._particleEmitterPos = emitterPos;
-        const coordSpan = document.getElementById('emitterCoord');
-        if (coordSpan) coordSpan.innerText = `(${Math.floor(x)}, ${Math.floor(y)})`;
+        updateCoordDisplay();
     };
     window._setRandomRateMode = function(enabled) {
         window._randomRateMode = enabled;
@@ -461,9 +470,8 @@
             emitterPos.x = canvas.width/2;
             emitterPos.y = canvas.height/2;
         }
-        const coordSpan = document.getElementById('emitterCoord');
-        if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
         window._particleEmitterPos = emitterPos;
+        updateCoordDisplay();
     }
     
     function initEvents() {
@@ -488,8 +496,7 @@
                 emitterPos.y = my;
                 window._particleEmitterPos = emitterPos;
             }
-            const coordSpan = document.getElementById('emitterCoord');
-            if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
+            updateCoordDisplay();
         };
         const setFixed = (e) => {
             if (!window._particleFollowMouse) {
@@ -511,8 +518,7 @@
                 emitterPos.x = mx;
                 emitterPos.y = my;
                 window._particleEmitterPos = emitterPos;
-                const coordSpan = document.getElementById('emitterCoord');
-                if (coordSpan) coordSpan.innerText = `(${Math.floor(emitterPos.x)}, ${Math.floor(emitterPos.y)})`;
+                updateCoordDisplay();
             }
         };
         canvas.addEventListener('mousemove', updateFromMouse);

@@ -70,6 +70,14 @@ input[type="range"] {
     border-radius: 32px;
 }
 
+.coord-input {
+    width: 48px;
+    height: 22px;
+    padding: 0 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    text-align: center;
+}
 .particle-count {
     display: inline-block;
     border-radius: 20px;

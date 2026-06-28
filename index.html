@@ -24,7 +24,10 @@
         <button id="followMouseBtn" class="mode-btn" aria-label="跟随鼠标模式">跟随鼠标</button>
         <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">固定点</button>
         <button id="centerPointBtn" class="mode-btn" style="display: none;">中心点</button>
-        <span id="emitterCoord" class="stat"></span>
+        <span class="stat" style="display:inline-flex;align-items:center;gap:3px;padding:2px 10px;background:transparent;border:none;">
+            X <input type="number" id="emitterX" class="coord-input" value="0">
+            Y <input type="number" id="emitterY" class="coord-input" value="0">
+        </span>
     </div>
     <div class="tool-group">
         <button id="clearBtn" aria-label="清除所有粒子">清除粒子</button>
