@@ -1,6 +1,7 @@
 // resize.js - 内部手柄拖拽调整宽度（手柄不随滚动条移动）
 (function() {
     const panel = document.querySelector('.control-panel');
+    const tabs = document.querySelector('.panel-tabs');
     const handle = document.querySelector('.resize-handle');
     if (!panel || !handle) return;
 
@@ -11,6 +12,7 @@
         let newWidth = startWidth - dx; // 右边缘固定，左边缘移动
         newWidth = Math.min(500, Math.max(320, newWidth));
         panel.style.width = newWidth + 'px';
+        if (tabs) tabs.style.width = newWidth + 'px';
     }
 
     function onMouseUp() {

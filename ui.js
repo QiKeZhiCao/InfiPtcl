@@ -529,9 +529,17 @@
 
         updateFontStyles();
 
-        const coordSpan = document.getElementById('emitterCoord');
-        if (coordSpan && window._particleEmitterPos) {
-            coordSpan.innerText = `(${Math.floor(window._particleEmitterPos.x)}, ${Math.floor(window._particleEmitterPos.y)})`;
+        if (window._updateCoordDisplay) window._updateCoordDisplay();
+        const exInput = document.getElementById('emitterX');
+        const eyInput = document.getElementById('emitterY');
+        if (exInput && eyInput) {
+            function onCoordInput() {
+                const x = parseInt(exInput.value) || 0;
+                const y = parseInt(eyInput.value) || 0;
+                if (window._setEmitterPos) window._setEmitterPos(x, y);
+            }
+            exInput.addEventListener('input', onCoordInput);
+            eyInput.addEventListener('input', onCoordInput);
         }
 
         // ---- Fused navigation tabs ----
@@ -582,6 +590,33 @@
             ro.observe(panel);
 
             window._updateFusedNav = positionFusedNav;
+        }
+
+        // ---- 横向一级选项卡切换 ----
+        const panelTabs = document.querySelectorAll('.panel-tab');
+        const panelFile = document.querySelector('.panel-file');
+        if (panelTabs.length && panelContent && panelFile) {
+            panelTabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    if (tab.classList.contains('active')) return;
+                    panelTabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    if (tab.dataset.panel === 'design') {
+                        panelContent.style.display = '';
+                        panelFile.style.display = 'none';
+                        if (fusedNav) fusedNav.style.display = '';
+                        setTimeout(() => {
+                            if (window._updateFusedNav) window._updateFusedNav();
+                            if (panelContent) panelContent.dispatchEvent(new Event('scroll'));
+                        }, 50);
+                    } else {
+                        panelContent.style.display = 'none';
+                        panelFile.style.display = '';
+                        if (fusedNav) fusedNav.style.display = 'none';
+                    }
+                });
+            });
         }
     }
 
