@@ -17,7 +17,7 @@ body {
 }
 
 .toolbar {
-    background: rgba(18, 20, 28, 0.96);
+    background: rgba(18, 20, 28, 0.78);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     font-size: 13px;
@@ -98,7 +98,7 @@ canvas {
 
 /* ========== 控制面板细节 ========== */
 .control-panel {
-    background: rgba(12, 14, 24, 0.96);
+    background: rgba(12, 14, 24, 0.80);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
     border: 1px solid rgba(102,204,255, 0.45);
@@ -523,7 +523,7 @@ select option {
 
 /* 播放条细节 */
 .playback-bar-container {
-    background: rgba(0, 0, 0, 0.85);
+    background: rgba(0, 0, 0, 0.65);
     -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     font-family: inherit;
@@ -601,4 +601,69 @@ select option {
     .file-name {
         text-align: left;
     }
+}
+
+/* ===== Toast 弹窗 ===== */
+.toast-container {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    pointer-events: none;
+    max-width: 360px;
+}
+
+@keyframes toast-in {
+    from { transform: translateX(120%); opacity: 0; }
+    to   { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toast-out {
+    from { transform: translateX(0); opacity: 1; }
+    to   { transform: translateY(-30px); opacity: 0; }
+}
+
+.toast-item {
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #f0f4ff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    pointer-events: auto;
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
+    transform: translateX(120%);
+    opacity: 0;
+}
+
+.toast-item.toast-visible {
+    animation: toast-in 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.toast-item.toast-hiding {
+    animation: toast-out 0.25s ease-in forwards;
+}
+
+.toast-error {
+    background: rgba(220, 60, 60, 0.92);
+    border-left: 3px solid #ff6b6b;
+}
+
+.toast-warn {
+    background: rgba(200, 150, 40, 0.92);
+    border-left: 3px solid #ffd93d;
+}
+
+.toast-success {
+    background: rgba(50, 170, 80, 0.92);
+    border-left: 3px solid #6bcf7f;
+}
+
+.toast-info {
+    background: rgba(40, 60, 100, 0.92);
+    border-left: 3px solid #66ccff;
 }

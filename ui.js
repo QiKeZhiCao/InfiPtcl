@@ -533,7 +533,7 @@
                     window._particleSelectedFont = fontName;
                 } catch (err) {
                     console.error('字体导入失败:', err);
-                    alert('字体导入失败: ' + err.message);
+                    Toast.error('字体导入失败: ' + err.message);
                 }
                 fontFileInput.value = '';
             });
