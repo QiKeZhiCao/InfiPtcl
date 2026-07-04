@@ -78,7 +78,7 @@
             if(events.length === 0) throw new Error('没有有效数字时间戳');
             sequenceEvents = events;
             updateTotalDuration();
-            if (seqStatusMsg) seqStatusMsg.innerText = `✅ 已加载 ${events.length} 个脉冲 （每次${burstCount}粒子）`;
+            Toast.success(`已加载 ${events.length} 项`);
             if (resetProgress) {
                 stopSequence();
             } else {
@@ -96,7 +96,7 @@
             }
             return true;
         } catch(e){
-            if (seqStatusMsg) seqStatusMsg.innerText = `❌ 解析失败: ${e.message}`;
+            Toast.error(`解析失败: ${e.message}`);
             return false;
         }
     }
@@ -120,13 +120,13 @@
             if (!isNaN(idx) && currentMidiTracks[idx]) timestamps = currentMidiTracks[idx].timestamps;
         }
         if (timestamps.length === 0) {
-            if (seqStatusMsg) seqStatusMsg.innerText = '⚠️ 所选轨道无音符事件';
+            Toast.warn('所选轨道无音符事件');
             timelineInput.value = "[]";
             return;
         }
         const jsonStr = formatTimestamps(timestamps, precision);
         timelineInput.value = jsonStr;
-        if (seqStatusMsg) seqStatusMsg.innerText = `🎵 已加载轨道: ${midiTrackSelect.options[midiTrackSelect.selectedIndex].text} | 共 ${timestamps.length} 个音符 | 精度: ${precision} 位小数`;
+        Toast.success(`已加载轨道: ${midiTrackSelect.options[midiTrackSelect.selectedIndex].text}`);
         loadTimeline(resetProgress);
     }
     window._updateTimelineFromSelectedTrack = updateTimelineFromSelectedTrack;
@@ -143,7 +143,7 @@
     
     function seekTo(targetTime) {
         if (!sequenceEvents.length) {
-            if (seqStatusMsg) seqStatusMsg.innerText = '⚠️ 请先加载时间戳序列';
+            Toast.warn('请先加载时间戳序列');
             return;
         }
         targetTime = Math.min(Math.max(0, targetTime), totalDuration);
@@ -161,12 +161,12 @@
             seqPausedTime = targetTime;
             updateProgressDisplay(targetTime);
         }
-        if (seqStatusMsg) seqStatusMsg.innerText = `🎯 跳转至 ${targetTime.toFixed(3)} 秒`;
+        if (seqStatusMsg) seqStatusMsg.innerText = `跳转至 ${targetTime.toFixed(3)} 秒`;
     }
     
     function playSequence() {
         if (!sequenceEvents.length) {
-            if (seqStatusMsg) seqStatusMsg.innerText = '⚠️ 请先加载有效时间戳序列';
+            Toast.warn('请先加载有效时间戳序列');
             return;
         }
         if (seqPlaybackActive && !seqPaused) return;
@@ -177,7 +177,7 @@
             seqStartRealTime = now - resumeTime;
             seqPlaybackActive = true;
             seqPaused = false;
-            if (seqStatusMsg) seqStatusMsg.innerText = `▶️ 播放中 从 ${resumeTime.toFixed(3)} 秒继续`;
+            if (seqStatusMsg) seqStatusMsg.innerText = `播放中 从 ${resumeTime.toFixed(3)} 秒继续`;
         } else {
             let startOffset = seqPausedTime;
             if (isNaN(startOffset)) startOffset = 0;
@@ -189,10 +189,10 @@
             seqPaused = false;
             seqStartRealTime = now - startOffset;
             seqLoop = loopSeqCheckbox ? loopSeqCheckbox.checked : false;
-            if (seqStatusMsg) seqStatusMsg.innerText = `🎵 播放中 从 ${startOffset.toFixed(3)} 秒开始 | 共${sequenceEvents.length}个脉冲 | 循环:${seqLoop?'开':'关'}`;
+            if (seqStatusMsg) seqStatusMsg.innerText = `播放中 从 ${startOffset.toFixed(3)} 秒开始 | 共${sequenceEvents.length}个脉冲 | 循环:${seqLoop?'开':'关'}`;
         }
         window._isContinuousMode = false;
-        if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '⏸️ 暂停 （空格）';
+        if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '暂停 （空格）';
         if (playbackBar) playbackBar.style.display = 'flex';
     }
     
@@ -203,9 +203,9 @@
             seqPausedTime = Math.min(Math.max(0, currentProgress), totalDuration);
             seqPlaybackActive = false;
             seqPaused = true;
-            if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '▶️ 播放 （空格）';
+            if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '播放 （空格）';
             updateProgressDisplay(seqPausedTime);
-            if (seqStatusMsg) seqStatusMsg.innerText = `⏸️ 已暂停于 ${seqPausedTime.toFixed(3)} 秒`;
+            if (seqStatusMsg) seqStatusMsg.innerText = `已暂停于 ${seqPausedTime.toFixed(3)} 秒`;
         }
     }
     
@@ -216,8 +216,8 @@
         seqNextIndex = 0;
         seqPausedTime = 0;
         updateProgressDisplay(0);
-        if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '▶️ 播放 （空格）';
-        if (seqStatusMsg) seqStatusMsg.innerText = '⏹️ 序列已停止 （按空格或播放按钮开始）';
+        if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '播放 （空格）';
+        if (seqStatusMsg) seqStatusMsg.innerText = '序列已停止 （按空格或播放按钮开始）';
         if(window._isContinuousMode === false && continuousModeBtn && continuousModeBtn.classList.contains('mode-active')){
             window._isContinuousMode = true;
         }
@@ -263,7 +263,7 @@
             if (sequenceModeBtn) sequenceModeBtn.classList.remove('mode-active');
             if (seqPlaybackActive || seqPaused) stopSequence();
             if (playbackBar) playbackBar.style.display = 'none';
-            if (seqStatusMsg) seqStatusMsg.innerText = '🎛️ 连续发射模式 （可调节速率）';
+            if (seqStatusMsg) seqStatusMsg.innerText = '连续发射模式 （可调节速率）';
             if (sequencePanel) sequencePanel.style.display = 'none';
             if (modeSeparator) modeSeparator.style.display = 'none';
             seqTabDisabled(true);
@@ -273,8 +273,8 @@
             if (playbackBar) playbackBar.style.display = 'flex';
             if (sequencePanel) sequencePanel.style.display = 'block';
             if (modeSeparator) modeSeparator.style.display = 'block';
-            if (seqStatusMsg) seqStatusMsg.innerText = currentMidiTracks.length ? '⏱️ 序列模式 当前轨道已加载' : '⏱️ 序列模式 请先上传MIDI或手动输入时间戳';
-            if (!seqPlaybackActive && !seqPaused && seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '▶️ 播放 （空格）';
+            if (seqStatusMsg) seqStatusMsg.innerText = currentMidiTracks.length ? '序列模式 当前轨道已加载' : '序列模式 请先上传MIDI或手动输入时间戳';
+            if (!seqPlaybackActive && !seqPaused && seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '播放 （空格）';
             seqTabDisabled(false);
         }
     }
@@ -352,18 +352,18 @@
                         }
                     }
                     if (currentMidiTracks.length === 0) {
-                        if (seqStatusMsg) seqStatusMsg.innerText = '❌ MIDI文件中未检测到任何音符轨道';
+                        Toast.error('MIDI文件中未检测到任何音符轨道');
                         return;
                     }
                     if (midiTrackSelect) midiTrackSelect.value = "0";
                     stopSequence(); // 重置进度
                     updateTimelineFromSelectedTrack(true);
                 } catch(err) {
-                    if (seqStatusMsg) seqStatusMsg.innerText = `❌ MIDI解析失败: ${err.message}`;
+                    Toast.error('MIDI解析失败: ' + err.message);
                     console.error(err);
                 }
             };
-            reader.onerror = () => { if (seqStatusMsg) seqStatusMsg.innerText = '❌ 文件读取失败'; };
+            reader.onerror = () => { Toast.error('文件读取失败'); };
             reader.readAsArrayBuffer(file);
         });
     }
@@ -376,8 +376,7 @@
     });
     
     if (timelineInput) {
-        timelineInput.value = '[0.0, 0.3, 0.6, 0.6, 1.0, 1.5]';
-        loadTimeline();
+        timelineInput.value = '';
     }
     setMode(true);
 })();

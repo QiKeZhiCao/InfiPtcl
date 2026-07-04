@@ -112,12 +112,12 @@
                 }
                 durationSec = actualEnd - currentTime;
                 if (durationSec <= 0.01) {
-                    exportStatusMsg.innerText = '导出时长为零或已超出序列结束。';
+                    Toast.error('导出时长为零或已超出序列结束。');
                     return;
                 }
                 exportStatusMsg.innerText = `序列模式：将从 ${currentTime.toFixed(2)}s 渲染 ${durationSec.toFixed(2)}s 片段（至 ${actualEnd.toFixed(2)}s）`;
             } else {
-                exportStatusMsg.innerText = '时间戳数组无效，无法渲染序列模式。';
+                Toast.error('时间戳数组无效，无法渲染序列模式。');
                 return;
             }
         } else {
@@ -128,7 +128,7 @@
         if (totalFrames <= 0) return;
         
         if (!('showDirectoryPicker' in window)) {
-            exportStatusMsg.innerText = '错误：当前浏览器不支持文件夹导出。请使用 Chrome/Edge 86+ 并确保在 HTTPS 或 localhost 下运行。';
+            Toast.error('当前浏览器不支持文件夹导出。');
             return;
         }
         
@@ -136,7 +136,7 @@
         try {
             pickedDir = await window.showDirectoryPicker();
         } catch (err) {
-            exportStatusMsg.innerText = '未选择文件夹，渲染已取消。';
+            Toast.info('未选择文件夹，渲染已取消。');
             return;
         }
         
@@ -236,7 +236,7 @@
                 await writable.close();
             } catch (err) {
                 console.error('保存失败', err);
-                exportStatusMsg.innerText = `保存失败: ${err.message}`;
+                Toast.error(`保存失败: ${err.message}`);
                 cancelExport();
                 break;
             }

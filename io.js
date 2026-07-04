@@ -279,6 +279,11 @@
                     if (file.name.endsWith('.json')) {
                         const text = await file.text();
                         const data = JSON.parse(text);
+                        if (!data || typeof data !== 'object' || !data.particleParams) {
+                            Toast.error('无效的项目文件');
+                            importFileInput.value = '';
+                            return;
+                        }
                         state = data;
                         textures = data.textures || [];
                         fonts = data.fonts || [];
@@ -287,7 +292,7 @@
                         if (typeof JSZip === 'undefined') { console.error('[IE] JSZip not loaded'); return; }
                         const zip = await JSZip.loadAsync(file);
                         const cfgFile = zip.file('config.json');
-                        if (!cfgFile) { alert('ZIP 中缺少 config.json'); return; }
+                        if (!cfgFile) { Toast.error('ZIP 中缺少 config.json'); return; }
                         state = JSON.parse(await cfgFile.async('string'));
                         // Textures
                         textures = [];
@@ -406,10 +411,11 @@
                         : 'ZIP压缩包';
                     document.getElementById('exportType').value = ext;
 
+                    Toast.success('项目导入成功');
                     console.log('[IE] Import complete');
                 } catch (err) {
                     console.error('[IE] Import error:', err);
-                    alert('导入失败: ' + err.message);
+                    Toast.error('导入失败: ' + err.message);
                 }
                 importFileInput.value = '';
             });
@@ -463,7 +469,7 @@
                     URL.revokeObjectURL(url);
                 } else {
                     // ZIP
-                    if (typeof JSZip === 'undefined') { alert('JSZip 库未加载'); return; }
+                    if (typeof JSZip === 'undefined') { Toast.error('JSZip 库未加载'); return; }
                     const zip = new JSZip();
                     state.textureNames = (window._textureFileNames || []).slice();
                     zip.file('config.json', JSON.stringify(state, null, 2));
@@ -489,7 +495,7 @@
                 }
             } catch (err) {
                 console.error('[IE] Export error:', err);
-                alert('导出失败: ' + err.message);
+                Toast.error('导出失败: ' + err.message);
             }
         });
     }
