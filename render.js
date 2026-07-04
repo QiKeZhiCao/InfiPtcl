@@ -1,4 +1,4 @@
-// export.js - 渲染PNG序列（修复第一帧空白问题，补充 canvas 定义）
+// render.js - 渲染PNG序列（修复第一帧空白问题，补充 canvas 定义）
 (function() {
     const exportBtn = document.getElementById('exportBtn');
     const cancelBtn = document.getElementById('cancelExportBtn');

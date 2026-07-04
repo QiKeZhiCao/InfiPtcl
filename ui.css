@@ -200,6 +200,9 @@ body.resizing {
     margin-left: 3px;
     max-height: calc(100vh - 193px);
 }
+.panel-file > h4:first-child {
+    margin-top: 0; /* 首个内容与设计面板的 .mode-switch 顶边对齐 */
+}
 
 .control-panel h4 {
     border-left: 4px solid #ffaa66;
@@ -479,6 +482,11 @@ textarea {
     flex-direction: column;
     gap: 4px;
     pointer-events: none;
+}
+.fn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 .fn-tab {
     position: relative;

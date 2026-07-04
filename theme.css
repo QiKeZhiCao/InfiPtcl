@@ -449,11 +449,35 @@ input:checked + .slider::before {
 /* 选择框 */
 select {
     color: white;
+    cursor: pointer;
+    background: #1e1f2c;
+    border: 1px solid #6a6f9a;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+select:hover {
+    cursor: pointer;
 }
 
 select option {
     background: #1e1f2c;
     color: white;
+    padding: 6px 14px;
+    border: 1px solid #6a6f9a;
+}
+
+/* 下拉框强化样式 */
+#exportType,
+.range-value {
+    color: white;
+    cursor: pointer;
+    background: #1e1f2c;
+    border: 1px solid #6a6f9a;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
 }
 
 /* 播放条细节 */

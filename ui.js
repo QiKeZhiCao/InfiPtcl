@@ -1,5 +1,33 @@
 // ui.js - UI 控制与事件绑定
 (function() {
+    // ====== 面板拖拽调整宽度 ======
+    const panel = document.querySelector('.control-panel');
+    const tabs = document.querySelector('.panel-tabs');
+    const handle = document.querySelector('.resize-handle');
+    if (panel && handle) {
+        let startX, startWidth;
+        function onMouseMove(e) {
+            const dx = e.clientX - startX;
+            let newWidth = startWidth - dx;
+            newWidth = Math.min(500, Math.max(320, newWidth));
+            panel.style.width = newWidth + 'px';
+            if (tabs) tabs.style.width = newWidth + 'px';
+        }
+        function onMouseUp() {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+            document.body.classList.remove('resizing');
+            if (window._updateFusedNav) window._updateFusedNav();
+        }
+        handle.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            startX = e.clientX;
+            startWidth = panel.offsetWidth;
+            document.body.classList.add('resizing');
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+    }
     function initUI() {
         // 初始化随机模式为关闭
         window._randomRateMode = false;
@@ -318,7 +346,6 @@
         }
 
         function updateTextureOrderList() {
-            window._updateTextureOrderList = updateTextureOrderList;
             const container = document.getElementById('textureOrderList');
             if (!container) return;
             const texs = window._particleTextures || [];
@@ -430,6 +457,7 @@
                 container.appendChild(item);
             });
         }
+        window._updateTextureOrderList = updateTextureOrderList;
 
         // 外观下拉菜单
         const appearanceMode = document.getElementById('appearanceMode');
@@ -481,6 +509,7 @@
         }
 
         // 字体导入
+        window._importedFonts = {};
         if (fontFileInput) {
             fontFileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
@@ -488,6 +517,7 @@
                 try {
                     const fontName = file.name.replace(/\.[^.]+$/, '');
                     const fontData = await file.arrayBuffer();
+                    window._importedFonts[fontName] = fontData;
                     const fontFace = new FontFace(fontName, fontData);
                     await fontFace.load();
                     document.fonts.add(fontFace);
@@ -546,17 +576,39 @@
         const fusedNav = document.querySelector('.fused-nav');
         const panel = document.querySelector('.control-panel');
         const panelContent = document.querySelector('.panel-content');
-        if (fusedNav && panel && panelContent) {
-            const tabs = fusedNav.querySelectorAll('.fn-tab');
-            const h4s = panelContent.querySelectorAll('h4');
+        const panelFile = document.querySelector('.panel-file');
+        if (!fusedNav || !panel) return;
 
-            function positionFusedNav() {
-                const panelRect = panel.getBoundingClientRect();
-                fusedNav.style.right = (window.innerWidth - panelRect.left - 1) + 'px';
+        const designGroup = fusedNav.querySelector('.fn-group[data-panel="design"]');
+        const fileGroup = fusedNav.querySelector('.fn-group[data-panel="file"]');
+
+        function positionFusedNav() {
+            const panelRect = panel.getBoundingClientRect();
+            fusedNav.style.right = (window.innerWidth - panelRect.left - 1) + 'px';
+        }
+
+        // Scroll-to-section click handler via delegation
+        fusedNav.addEventListener('click', (e) => {
+            const tab = e.target.closest('.fn-tab');
+            if (!tab) return;
+            const group = tab.closest('.fn-group');
+            if (!group) return;
+            const contentEl = group.dataset.panel === 'design' ? panelContent : panelFile;
+            if (!contentEl) return;
+            const h4s = contentEl.querySelectorAll('h4');
+            const idx = parseInt(tab.dataset.idx);
+            const target = h4s[idx];
+            if (target && target.getBoundingClientRect().height > 0) {
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
+        });
 
-            function updateActiveTab() {
-                const containerRect = panelContent.getBoundingClientRect();
+        // Setup one scroll listener per content panel
+        function setupNavScroll(contentEl, groupEl) {
+            const tabs = groupEl.querySelectorAll('.fn-tab');
+            const h4s = contentEl.querySelectorAll('h4');
+            function onScroll() {
+                const containerRect = contentEl.getBoundingClientRect();
                 const threshold = containerRect.top + 55;
                 let activeIdx = 0;
                 h4s.forEach((h4, i) => {
@@ -564,37 +616,42 @@
                 });
                 tabs.forEach((tab, i) => tab.classList.toggle('active', i === activeIdx));
             }
+            contentEl.addEventListener('scroll', onScroll);
+            return onScroll;
+        }
 
-            fusedNav.addEventListener('click', (e) => {
-                const tab = e.target.closest('.fn-tab');
-                if (!tab) return;
-                const idx = parseInt(tab.dataset.idx);
-                const target = h4s[idx];
-                if (target && target.getBoundingClientRect().height > 0) {
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
+        function activateNavGroup(groupEl, contentEl) {
+            fusedNav.querySelectorAll('.fn-group').forEach(g => { g.style.display = 'none'; });
+            groupEl.style.display = '';
 
-            panelContent.addEventListener('scroll', updateActiveTab);
+            const tabs = groupEl.querySelectorAll('.fn-tab');
+            tabs.forEach(t => t.classList.remove('active'));
+            if (tabs.length) tabs[0].classList.add('active');
+
+            // 滚动到顶部，保留模式切换区可见
+            contentEl.scrollTop = 0;
 
             setTimeout(() => {
-                const firstH4 = h4s[0];
-                if (firstH4) {
-                    fusedNav.style.top = firstH4.getBoundingClientRect().top + 'px';
-                }
+                fusedNav.style.top = (panel.getBoundingClientRect().top + 80) + 'px';
                 positionFusedNav();
-                updateActiveTab();
+                contentEl.dispatchEvent(new Event('scroll'));
             }, 50);
-
-            const ro = new ResizeObserver(() => positionFusedNav());
-            ro.observe(panel);
-
-            window._updateFusedNav = positionFusedNav;
         }
+
+        // Init both scroll listeners once
+        if (designGroup && panelContent) setupNavScroll(panelContent, designGroup);
+        if (fileGroup && panelFile) setupNavScroll(panelFile, fileGroup);
+
+        // Start with design group
+        if (designGroup && panelContent) activateNavGroup(designGroup, panelContent);
+        else if (fileGroup && panelFile) { fileGroup.style.display = ''; }
+
+        const ro = new ResizeObserver(() => positionFusedNav());
+        ro.observe(panel);
+        window._updateFusedNav = positionFusedNav;
 
         // ---- 横向一级选项卡切换 ----
         const panelTabs = document.querySelectorAll('.panel-tab');
-        const panelFile = document.querySelector('.panel-file');
         if (panelTabs.length && panelContent && panelFile) {
             panelTabs.forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -606,14 +663,12 @@
                         panelContent.style.display = '';
                         panelFile.style.display = 'none';
                         if (fusedNav) fusedNav.style.display = '';
-                        setTimeout(() => {
-                            if (window._updateFusedNav) window._updateFusedNav();
-                            if (panelContent) panelContent.dispatchEvent(new Event('scroll'));
-                        }, 50);
+                        if (designGroup) activateNavGroup(designGroup, panelContent);
                     } else {
                         panelContent.style.display = 'none';
                         panelFile.style.display = '';
-                        if (fusedNav) fusedNav.style.display = 'none';
+                        if (fusedNav) fusedNav.style.display = '';
+                        if (fileGroup && panelFile) activateNavGroup(fileGroup, panelFile);
                     }
                 });
             });

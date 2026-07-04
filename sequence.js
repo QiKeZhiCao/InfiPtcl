@@ -35,6 +35,8 @@
     }
     
     let currentMidiTracks = [];
+    window._currentMidiTracks = currentMidiTracks;
+    window._setMidiTracks = function(tracks) { currentMidiTracks = tracks; window._currentMidiTracks = tracks; };
     let sequenceEvents = [];
     let seqPlaybackActive = false;
     let seqPaused = false;
@@ -88,8 +90,9 @@
                     if (!seqPaused && seqPlaybackActive) {
                         const now = performance.now() / 1000;
                         seqStartRealTime = now - currentTime;
-                    }
-                }
+        }
+    }
+    window._setSequenceMode = setMode;
             }
             return true;
         } catch(e){
@@ -126,6 +129,7 @@
         if (seqStatusMsg) seqStatusMsg.innerText = `🎵 已加载轨道: ${midiTrackSelect.options[midiTrackSelect.selectedIndex].text} | 共 ${timestamps.length} 个音符 | 精度: ${precision} 位小数`;
         loadTimeline(resetProgress);
     }
+    window._updateTimelineFromSelectedTrack = updateTimelineFromSelectedTrack;
     
     function updateProgressDisplay(currentSec) {
         if (totalDuration > 0) {
@@ -274,7 +278,11 @@
             seqTabDisabled(false);
         }
     }
-    
+    window._setSequenceMode = setMode;
+
+    if (loopSeqCheckbox) loopSeqCheckbox.addEventListener('change', () => { seqLoop = loopSeqCheckbox.checked; });
+    window._setSeqLoop = function(v) { seqLoop = v; if (loopSeqCheckbox) loopSeqCheckbox.checked = v; };
+
     if (continuousModeBtn) continuousModeBtn.addEventListener('click', () => setMode(true));
     if (sequenceModeBtn) sequenceModeBtn.addEventListener('click', () => setMode(false));
     if (seqPlayPauseBtn) {
@@ -332,6 +340,7 @@
                     const arrayBuffer = evt.target.result;
                     const midiData = window.MidiParser.parse(arrayBuffer);
                     currentMidiTracks = midiData.tracks;
+                    if (window._setMidiTracks) window._setMidiTracks(currentMidiTracks);
                     if (midiTrackSelect) {
                         midiTrackSelect.innerHTML = '<option value="all">所有轨道合并</option>';
                         for (let i=0; i<currentMidiTracks.length; i++) {

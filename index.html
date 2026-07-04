@@ -6,6 +6,7 @@
     <title>粒子生成器</title>
     <link rel="icon" href="favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="ui.css">
+    <script src="jszip.min.js"></script>
     <link rel="stylesheet" href="theme.css">
 </head>
 <body>
@@ -334,7 +335,7 @@
                     </div>
                     <div class="param-row">
                         <span>音轨</span>
-                        <select id="midiTrackSelect" style="flex:1; background:#1e1f2c; color:white;">
+                        <select id="midiTrackSelect" style="flex:1; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:#1e1f2c; color:white;">
                             <option value="all">所有轨道合并</option>
                         </select>
                     </div>
@@ -383,27 +384,57 @@
         </div>
     </div>
     <div class="panel-file" style="display:none;">
-        <h4>文件管理</h4>
+        <h4>信息</h4>
         <div class="param-row">
-            <span>文件功能即将推出</span>
+            <span>文件名</span>
+            <input type="text" id="projectName" class="range-value" value="未命名项目" style="flex:1;"><span id="fileNameExt" style="color:#8a90b0;font-size:12px;margin-left:4px;"></span>
+        </div>
+        <div class="param-row">
+            <span>大小</span>
+            <span id="fileSize" style="color:#8a90b0;font-size:12px;">—</span>
+        </div>
+        <div class="param-row">
+            <span>类型</span>
+            <span id="fileType" style="color:#8a90b0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+        </div>
+
+        <h4>存储</h4>
+        <div class="param-row">
+            <span>导入</span>
+            <input type="file" id="importFileInput" accept=".json,.zip" style="display:none;">
+            <button id="importBtn" class="mode-btn" style="flex:none;padding:4px 16px;">选择文件</button>
+        </div>
+        <div class="param-row">
+            <span>导出</span>
+            <select id="exportType" class="range-value" style="flex:1;">
+                <option value="json">.json</option>
+                <option value="zip" selected>.zip</option>
+            </select>
+            <button id="configExportBtn" class="mode-btn" style="flex:none;padding:4px 16px;">导出</button>
         </div>
     </div>
 </div>
 
 <nav class="fused-nav">
-    <button class="fn-tab active" data-idx="0">粒子</button>
-    <button class="fn-tab" data-idx="1">外观</button>
-    <button class="fn-tab" data-idx="2">运动</button>
-    <button class="fn-tab" data-idx="3">显示</button>
-    <button class="fn-tab" data-idx="4">序列</button>
-    <button class="fn-tab" data-idx="5">渲染</button>
+    <div class="fn-group" data-panel="design">
+        <button class="fn-tab active" data-idx="0">粒子</button>
+        <button class="fn-tab" data-idx="1">外观</button>
+        <button class="fn-tab" data-idx="2">运动</button>
+        <button class="fn-tab" data-idx="3">显示</button>
+        <button class="fn-tab" data-idx="4">序列</button>
+        <button class="fn-tab" data-idx="5">渲染</button>
+    </div>
+    <div class="fn-group" data-panel="file" style="display:none;">
+        <button class="fn-tab active" data-idx="0">信息</button>
+        <button class="fn-tab" data-idx="1">存储</button>
+    </div>
 </nav>
 
 <script src="midi-parser.js"></script>
 <script src="particle.js"></script>
 <script src="ui.js"></script>
 <script src="sequence.js"></script>
-<script src="resize.js"></script>
-<script src="export.js"></script>
+<script src="io.js"></script>
+<script src="render.js"></script>
 </body>
 </html>
