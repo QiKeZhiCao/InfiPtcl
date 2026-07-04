@@ -91,7 +91,8 @@
                     ['speedMin','speedMin',false],['speedMax','speedMax',false],['gravityX','gravityX',false],
                     ['gravityY','gravityY',false],['damping','damping',true],['emitRadius','emitRadius',false],
                     ['maxParticles','maxParticles',false],['fadeStartMin','fadeStartMin',true],['fadeStartMax','fadeStartMax',true],
-                    ['fadeDurationMin','fadeDurationMin',true],['fadeDurationMax','fadeDurationMax',true]
+                    ['fadeDurationMin','fadeDurationMin',true],['fadeDurationMax','fadeDurationMax',true],
+                    ['alphaMin','alphaMin',true],['alphaMax','alphaMax',true]
                 ];
                 for (const [id, prop, isFloat] of sliderIds) {
                     const slider = document.getElementById(id);

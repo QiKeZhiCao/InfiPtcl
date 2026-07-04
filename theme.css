@@ -1,5 +1,10 @@
 /* ===== 局部 UI 细节 — 颜色 / 字体 / 阴影 / 动效 ===== */
 
+@font-face {
+    font-family: 'MapleMono-NF-CN-Regular';
+    src: url('MapleMono-NF-CN-Regular.ttf') format('truetype');
+}
+
 * {
     -webkit-user-select: none;
     user-select: none;
@@ -7,7 +12,7 @@
 
 body {
     background: #0a0c15;
-    font-family: 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
+    font-family: 'MapleMono-NF-CN-Regular', 'Segoe UI', 'Poppins', 'Roboto', sans-serif;
     color: #f0f3fa;
 }
 
@@ -27,7 +32,7 @@ body {
 .tool-group label {
     font-size: 12px;
     letter-spacing: 0.5px;
-    color: #ffecb3;
+    color: #bbeeff;
     font-weight: 500;
 }
 
@@ -47,7 +52,7 @@ input[type="text"],
 .range-value {
     background: #1a1c2a;
     border: 1px solid #6a6f9a;
-    color: #ffd89a;
+    color: #99ddff;
     font-family: inherit;
     font-size: 12px;
     text-align: right;
@@ -56,18 +61,18 @@ input[type="text"],
 
 button:hover {
     background: #4a4e72;
-    border-color: #ffc285;
+    border-color: #55bbee;
 }
 
 .color-preview {
-    border: 2px solid #ffdd99;
+    border: 2px solid #aaeeff;
 }
 
 .stat {
     background: #00000099;
     font-size: 13px;
     font-weight: bold;
-    color: #ffdd99;
+    color: #aaeeff;
     font-family: inherit;
 }
 
@@ -77,7 +82,7 @@ button:hover {
 
 .title {
     font-weight: bold;
-    background: linear-gradient(135deg, #ffcc88, #88ccff);
+    background: linear-gradient(135deg, #99ddff, #88ccff);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -96,18 +101,18 @@ canvas {
     background: rgba(12, 14, 24, 0.96);
     -webkit-backdrop-filter: blur(16px);
     backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 200, 100, 0.45);
+    border: 1px solid rgba(102,204,255, 0.45);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
     font-size: 12px;
 }
 
 .resize-handle {
-    background: rgba(255, 200, 100, 0.3);
+    background: rgba(102,204,255, 0.3);
     transition: background 0.2s;
 }
 
 .resize-handle:hover {
-    background: rgba(255, 200, 100, 0.8);
+    background: rgba(102,204,255, 0.8);
 }
 
 body.resizing {
@@ -122,21 +127,21 @@ body.resizing {
 
 .panel-content::-webkit-scrollbar-track {
     background: #2a2e3c;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 .panel-content::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
+    background: #66ccff;
+    border-radius: 5px;
 }
 
 .panel-content::-webkit-scrollbar-thumb:hover {
-    background: #ffcc88;
+    background: #99ddff;
 }
 
 .panel-content {
     scrollbar-width: thin;
-    scrollbar-color: #ffaa66 #2a2e3c;
+    scrollbar-color: #66ccff #2a2e3c;
 }
 
 .texture-order-list::-webkit-scrollbar {
@@ -145,19 +150,19 @@ body.resizing {
 }
 .texture-order-list::-webkit-scrollbar-track {
     background: #2a2e3c;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 .texture-order-list::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
+    background: #66ccff;
+    border-radius: 5px;
 }
 .texture-order-list {
     scrollbar-width: thin;
-    scrollbar-color: #ffaa66 #2a2e3c;
+    scrollbar-color: #66ccff #2a2e3c;
 }
 
 .control-panel h4 {
-    color: #ffcf8a;
+    color: #88ddff;
     font-size: 14px;
 }
 
@@ -168,7 +173,7 @@ body.resizing {
 
 .group-label {
     font-weight: 500;
-    color: #ffcf8a;
+    color: #88ddff;
     display: block;
     margin-bottom: 6px;
     margin-left: 0;
@@ -188,7 +193,7 @@ body.resizing {
 
 .file-name {
     text-align: right;
-    color: #ffd89a;
+    color: #99ddff;
     font-size: 11px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -196,7 +201,7 @@ body.resizing {
 }
 
 .file-label {
-    background: #3f4668;
+    background: #1e1f2c;
     font-size: 12px;
     font-weight: 400;
     border: 1px solid #6a6f9a;
@@ -205,11 +210,11 @@ body.resizing {
 
 .file-label:hover {
     background: #4a4e72;
-    border-color: #ffc285;
+    border-color: #55bbee;
 }
 
 #exportBtn {
-    background: #3f4668;
+    background: #1e1f2c;
     font-size: 12px;
     font-weight: 400;
     border: 1px solid #6a6f9a;
@@ -218,7 +223,7 @@ body.resizing {
 
 #exportBtn:hover {
     background: #4a4e72;
-    border-color: #ffc285;
+    border-color: #55bbee;
 }
 
 .control-panel input[type="range"],
@@ -237,21 +242,23 @@ body.resizing {
     -webkit-appearance: none;
     width: 12px;
     height: 12px;
-    border-radius: 50%;
-    background: #ffaa66;
+    border-radius: 3px;
+    background: radial-gradient(circle at center, #66ccff 2px, transparent 2px);
     cursor: pointer;
-    border: none;
+    border: 2px solid #66ccff;
     margin-top: 0;
+    transform: rotate(45deg);
 }
 
 .control-panel input[type="range"]::-moz-range-thumb,
 .range-controls input[type="range"]::-moz-range-thumb {
     width: 12px;
     height: 12px;
-    border-radius: 50%;
-    background: #ffaa66;
+    border-radius: 3px;
+    background: radial-gradient(circle at center, #66ccff 2px, transparent 2px);
     cursor: pointer;
-    border: none;
+    border: 2px solid #66ccff;
+    transform: rotate(45deg);
 }
 
 .control-panel input[type="range"]::-moz-range-track,
@@ -268,7 +275,7 @@ body.resizing {
 
 .value-number,
 .range-value {
-    color: #ffd89a;
+    color: #99ddff;
     font-weight: 500;
 }
 
@@ -284,7 +291,7 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 hr {
-    border-color: #ffb34744;
+    border-color: #66ccff44;
     margin: 10px 0;
 }
 
@@ -299,9 +306,9 @@ hr {
 }
 
 .mode-switch .mode-active {
-    background: #5a5e8a;
-    border-color: #ffaa66;
-    box-shadow: 0 0 6px rgba(255,170,102,0.5);
+    background: #4a4e72;
+    border-color: #66ccff;
+    box-shadow: 0 0 6px rgba(102,204,255,0.5);
 }
 
 .tool-group button {
@@ -316,20 +323,20 @@ hr {
 
 .tool-group button:hover {
     background: #4a4e72;
-    border-color: #ffc285;
+    border-color: #55bbee;
 }
 
 .tool-group button.active {
-    background: #5a5e8a;
-    border-color: #ffaa66;
-    box-shadow: 0 0 6px rgba(255,170,102,0.5);
+    background: #4a4e72;
+    border-color: #66ccff;
+    box-shadow: 0 0 6px rgba(102,204,255,0.5);
 }
 
 textarea {
     background: #1a1c2a;
     border: 1px solid #6a6f9a;
-    color: #ffecb3;
-    border-radius: 16px;
+    color: #bbeeff;
+    border-radius: 8px;
     padding: 8px;
     font-family: inherit;
     font-size: 11px;
@@ -342,16 +349,16 @@ textarea {
 
 #timelineInput::-webkit-scrollbar-track {
     background: #2a2e3c;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 #timelineInput::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
+    background: #66ccff;
+    border-radius: 5px;
 }
 
 #timelineInput::-webkit-scrollbar-thumb:hover {
-    background: #ffcc88;
+    background: #99ddff;
 }
 
 #timelineInput::-webkit-scrollbar-button {
@@ -359,14 +366,14 @@ textarea {
 }
 
 #timelineInput::-webkit-resizer {
-    background: linear-gradient(135deg, transparent 10px, #ffaa66 10px);
+    background: linear-gradient(135deg, transparent 10px, #66ccff 10px);
     background-size: 14px 14px;
     background-repeat: no-repeat;
 }
 
 #timelineInput {
     scrollbar-width: thin;
-    scrollbar-color: #ffaa66 #2a2e3c;
+    scrollbar-color: #66ccff #2a2e3c;
 }
 
 #paletteColorInput::-webkit-scrollbar {
@@ -376,16 +383,16 @@ textarea {
 
 #paletteColorInput::-webkit-scrollbar-track {
     background: #2a2e3c;
-    border-radius: 10px;
+    border-radius: 5px;
 }
 
 #paletteColorInput::-webkit-scrollbar-thumb {
-    background: #ffaa66;
-    border-radius: 10px;
+    background: #66ccff;
+    border-radius: 5px;
 }
 
 #paletteColorInput::-webkit-scrollbar-thumb:hover {
-    background: #ffcc88;
+    background: #99ddff;
 }
 
 #paletteColorInput::-webkit-scrollbar-button {
@@ -393,21 +400,21 @@ textarea {
 }
 
 #paletteColorInput::-webkit-resizer {
-    background: linear-gradient(135deg, transparent 10px, #ffaa66 10px);
+    background: linear-gradient(135deg, transparent 10px, #66ccff 10px);
     background-size: 14px 14px;
     background-repeat: no-repeat;
 }
 
 #paletteColorInput {
     scrollbar-width: thin;
-    scrollbar-color: #ffaa66 #2a2e3c;
+    scrollbar-color: #66ccff #2a2e3c;
 }
 
 .seq-status {
     font-size: 11px;
     background: #00000066;
     padding: 4px 8px;
-    border-radius: 16px;
+    border-radius: 8px;
     text-align: center;
     margin-top: 6px;
 }
@@ -453,7 +460,7 @@ textarea {
 }
 
 input:checked + .slider {
-    background-color: #ffaa66;
+    background-color: #66ccff;
 }
 
 input:checked + .slider::before {
@@ -463,7 +470,7 @@ input:checked + .slider::before {
 /* 全宽按钮 */
 .full-width-btn {
     width: 100%;
-    background: #3f4668;
+    background: #1e1f2c;
     border-radius: 28px;
     padding: 6px 12px;
     cursor: pointer;
@@ -477,7 +484,7 @@ input:checked + .slider::before {
 
 .full-width-btn:hover {
     background: #4a4e72;
-    border-color: #ffc285;
+    border-color: #55bbee;
 }
 
 /* 选择框 */
@@ -523,8 +530,8 @@ select option {
 }
 
 .play-pause-btn {
-    background: #2a2e42;
-    border: 1px solid #ffaa66;
+    background: #1e1f2c;
+    border: 1px solid #66ccff;
     border-radius: 40px;
     padding: 6px 18px;
     font-size: 14px;
@@ -541,7 +548,7 @@ select option {
 
 .current-time, .total-time {
     font-size: 14px;
-    color: #ffdd99;
+    color: #aaeeff;
     font-family: inherit;
 }
 
@@ -560,19 +567,22 @@ select option {
     -webkit-appearance: none;
     width: 14px;
     height: 14px;
-    border-radius: 50%;
-    background: #ffaa66;
+    border-radius: 3px;
+    background: radial-gradient(circle at center, #66ccff 2px, transparent 2px);
     cursor: pointer;
-    box-shadow: 0 0 4px #ffcc88;
+    border: 2px solid #66ccff;
+    box-shadow: 0 0 4px #99ddff;
+    transform: rotate(45deg);
 }
 
 .progress-slider::-moz-range-thumb {
     width: 14px;
     height: 14px;
-    border-radius: 50%;
-    background: #ffaa66;
+    border-radius: 3px;
+    background: radial-gradient(circle at center, #66ccff 2px, transparent 2px);
     cursor: pointer;
-    border: none;
+    border: 2px solid #66ccff;
+    transform: rotate(45deg);
 }
 
 .progress-slider::-moz-range-track {

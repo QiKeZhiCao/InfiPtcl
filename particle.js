@@ -36,7 +36,9 @@
         maxParticles: 3000,
         backgroundColor: '#000000',
         initRotAngle: 0,
-        initRotSpread: 0
+        initRotSpread: 0,
+        alphaMin: 30,
+        alphaMax: 100
     };
     
     window._isContinuousMode = true;
@@ -121,9 +123,9 @@
         tc.clearRect(0, 0, size, size);
         const center = size / 2;
         const grad = tc.createRadialGradient(center, center, 0, center, center, center);
-        grad.addColorStop(0, 'rgba(220, 235, 255, 1)');
-        grad.addColorStop(0.6, 'rgba(100, 160, 220, 0.5)');
-        grad.addColorStop(1, 'rgba(50, 100, 150, 0)');
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        grad.addColorStop(0.6, 'rgba(102, 204, 255, 0.5)');
+        grad.addColorStop(1, 'rgba(102, 204, 255, 0)');
         tc.beginPath();
         tc.arc(center, center, center, 0, Math.PI * 2);
         tc.fillStyle = grad;
@@ -244,13 +246,15 @@
             }
         }
         
+        const initAlpha = (params.alphaMin + Math.random() * (params.alphaMax - params.alphaMin)) / 100;
+        
         return {
             x: px, y: py, vx, vy, size,
             life: maxLife,
             maxLife: maxLife,
             fadeStart: fadeStart,
             fadeDuration: fadeDuration,
-            rot: initRot, rotSpeed, alpha: 1.0,
+            rot: initRot, rotSpeed, alpha: initAlpha, initAlpha: initAlpha,
             texture: texture,
             isText: isText,
             text: text,
@@ -316,13 +320,13 @@
             p.rot += p.rotSpeed * deltaSec;
             const alive = p.maxLife - p.life;
             if (alive < p.fadeStart) {
-                p.alpha = 1.0;
+                p.alpha = p.initAlpha;
             } else {
                 const fadeElapsed = alive - p.fadeStart;
                 if (fadeElapsed >= p.fadeDuration) {
                     p.alpha = 0;
                 } else {
-                    p.alpha = 1 - (fadeElapsed / p.fadeDuration);
+                    p.alpha = p.initAlpha * (1 - (fadeElapsed / p.fadeDuration));
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
@@ -443,7 +447,7 @@
                         ctx.drawImage(texs[0], -half, -half, p.size, p.size);
                     }
                 } else {
-                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,180,100,${p.alpha})`;
+                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(102,204,255,${p.alpha})`;
                     ctx.beginPath();
                     ctx.arc(0, 0, half, 0, Math.PI*2);
                     ctx.fill();
@@ -456,7 +460,7 @@
     function drawEmitter() {
         if (window._exporting) return;
         ctx.save();
-        ctx.strokeStyle = '#ffdd99';
+        ctx.strokeStyle = '#66ccff';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(emitterPos.x-14, emitterPos.y);
@@ -468,9 +472,11 @@
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(emitterPos.x, emitterPos.y, 8, 0, Math.PI*2);
-        ctx.strokeStyle = '#ffaa66';
         ctx.stroke();
-        ctx.fillStyle = '#ffbb77aa';
+        const eg = ctx.createRadialGradient(emitterPos.x, emitterPos.y, 0, emitterPos.x, emitterPos.y, 5);
+        eg.addColorStop(0, 'rgba(255,255,255,1)');
+        eg.addColorStop(1, 'rgba(102,204,255,1)');
+        ctx.fillStyle = eg;
         ctx.arc(emitterPos.x, emitterPos.y, 5, 0, Math.PI*2);
         ctx.fill();
         ctx.restore();

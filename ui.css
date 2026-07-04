@@ -19,7 +19,7 @@ body {
     flex-wrap: wrap;
     gap: 10px;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 215, 120, 0.4);
+    border-bottom: 1px solid rgba(102,204,255,0.4);
     z-index: 10;
 }
 
@@ -30,7 +30,7 @@ body {
     border-radius: 40px;
     align-items: center;
     flex-wrap: nowrap;
-    border: 1px solid rgba(255,200,100,0.25);
+    border: 1px solid rgba(102,204,255,0.25);
 }
 
 input, select, button {
@@ -43,14 +43,14 @@ input[type="number"],
 input[type="text"],
 .time-input,
 .range-value {
-    border-radius: 16px;
+    border-radius: 8px;
     padding: 5px 10px;
     cursor: text;
 }
 
 input[type="range"] {
     cursor: pointer;
-    accent-color: #ffaa66;
+    accent-color: #66ccff;
 }
 
 .control-panel input[type="range"] {
@@ -71,7 +71,7 @@ input[type="range"] {
 }
 
 .coord-input {
-    width: 48px;
+    width: 64px;
     height: 22px;
     padding: 0 4px;
     border-radius: 4px;
@@ -80,7 +80,7 @@ input[type="range"] {
 }
 .particle-count {
     display: inline-block;
-    border-radius: 20px;
+    border-radius: 10px;
     padding: 0 8px;
     min-width: 40px;
     text-align: center;
@@ -110,7 +110,7 @@ canvas {
     width: 340px;
     min-width: 340px;
     max-width: 500px;
-    border-radius: 24px;
+    border-radius: 12px;
     z-index: 20;
     display: flex;
     flex-direction: column;
@@ -125,7 +125,7 @@ canvas {
     width: 3px;
     cursor: ew-resize;
     z-index: 30;
-    border-radius: 24px 0 0 24px;
+    border-radius: 12px 0 0 12px;
 }
 
 body.resizing {
@@ -149,7 +149,7 @@ body.resizing {
     flex: none;
     position: relative;
     padding: 6px 16px 8px;
-    border: 2px solid rgba(255,200,100,0.3);
+    border: 2px solid rgba(102,204,255,0.3);
     border-radius: 8px 8px 0 0;
     background: #12141e;
     color: #b0b8d0;
@@ -162,8 +162,8 @@ body.resizing {
 }
 .panel-tab.active {
     border-bottom-color: transparent;
-    background: rgba(12,14,24,0.96);
-    color: #ffaa66;
+    background: #0c0e18;
+    color: #66ccff;
 }
 .panel-tab.active::after {
     content: '';
@@ -179,8 +179,8 @@ body.resizing {
     border-bottom-color: transparent;
 }
 .panel-tab:hover {
-    border-color: #ffaa66;
-    color: #ffd89a;
+    border-color: #66ccff;
+    color: #99ddff;
 }
 
 .panel-content {
@@ -205,7 +205,7 @@ body.resizing {
 }
 
 .control-panel h4 {
-    border-left: 4px solid #ffaa66;
+    border-left: 4px solid #66ccff;
     padding-left: 10px;
     margin-top: 12px;
     margin-bottom: 10px;
@@ -227,7 +227,7 @@ body.resizing {
 
 .indent-line {
     padding-left: 24px;
-    border-left: 1px solid rgba(255, 200, 100, 0.25);
+    border-left: 1px solid rgba(102,204,255, 0.25);
 }
 
 .param-group {
@@ -236,7 +236,7 @@ body.resizing {
 
 .group-content {
     padding-left: 24px;
-    border-left: 1px solid rgba(255,200,100,0.3);
+    border-left: 1px solid rgba(102,204,255,0.3);
 }
 
 .range-controls {
@@ -336,7 +336,7 @@ textarea {
     bottom: 0;
     left: 0;
     right: 0;
-    border-top: 1px solid rgba(255, 200, 100, 0.4);
+    border-top: 1px solid rgba(102,204,255, 0.4);
     padding: 10px 10px;
     z-index: 30;
 }
@@ -427,7 +427,7 @@ textarea {
 
 .texture-order-item {
     position: relative;
-    border-radius: 8px;
+    border-radius: 4px;
     cursor: grab;
     user-select: none;
     aspect-ratio: 1;
@@ -436,7 +436,7 @@ textarea {
 }
 
 .texture-order-item:hover {
-    border-color: rgba(255,200,100,0.4);
+    border-color: rgba(102,204,255,0.4);
 }
 
 .texture-order-item.dragging {
@@ -448,9 +448,9 @@ textarea {
     position: absolute;
     pointer-events: none;
     z-index: 5;
-    border-radius: 8px;
-    border: 2px dashed rgba(255,170,102,0.5);
-    background: rgba(255,170,102,0.06);
+    border-radius: 4px;
+    border: 2px dashed rgba(102,204,255,0.5);
+    background: rgba(102,204,255,0.06);
 }
 
 .texture-order-item .thumb {
@@ -495,10 +495,10 @@ textarea {
     padding: 0;
     width: 40px;
     height: 40px;
-    border: 2px solid rgba(255,200,100,0.3);
+    border: 2px solid rgba(102,204,255,0.3);
     border-right-width: 2px;
     border-right-style: solid;
-    border-right-color: rgba(255,200,100,0.3);
+    border-right-color: rgba(102,204,255,0.3);
     border-radius: 8px 0 0 8px;
     border-radius: 10px 0 0 10px;
     background: #12141e;
@@ -516,9 +516,9 @@ textarea {
 }
 .fn-tab.active {
     border-right-color: transparent;
-    box-shadow: 7px 0 0 0 rgba(12,14,24,0.96);
-    background: rgba(12,14,24,0.96);
-    color: #ffaa66;
+    box-shadow: 7px 0 0 0 #0c0e18;
+    background: #0c0e18;
+    color: #66ccff;
 }
 .fn-tab.active::after {
     content: '';
@@ -537,6 +537,6 @@ textarea {
     border-right-color: transparent;
 }
 .fn-tab:hover {
-    border-color: #ffaa66;
-    color: #ffd89a;
+    border-color: #66ccff;
+    color: #99ddff;
 }
