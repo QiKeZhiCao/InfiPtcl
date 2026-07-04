@@ -123,9 +123,9 @@
         tc.clearRect(0, 0, size, size);
         const center = size / 2;
         const grad = tc.createRadialGradient(center, center, 0, center, center, center);
-        grad.addColorStop(0, 'rgba(220, 235, 255, 1)');
-        grad.addColorStop(0.6, 'rgba(100, 160, 220, 0.5)');
-        grad.addColorStop(1, 'rgba(50, 100, 150, 0)');
+        grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        grad.addColorStop(0.6, 'rgba(102, 204, 255, 0.5)');
+        grad.addColorStop(1, 'rgba(102, 204, 255, 0)');
         tc.beginPath();
         tc.arc(center, center, center, 0, Math.PI * 2);
         tc.fillStyle = grad;
@@ -447,7 +447,7 @@
                         ctx.drawImage(texs[0], -half, -half, p.size, p.size);
                     }
                 } else {
-                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,180,100,${p.alpha})`;
+                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(102,204,255,${p.alpha})`;
                     ctx.beginPath();
                     ctx.arc(0, 0, half, 0, Math.PI*2);
                     ctx.fill();
@@ -460,7 +460,7 @@
     function drawEmitter() {
         if (window._exporting) return;
         ctx.save();
-        ctx.strokeStyle = '#ffdd99';
+        ctx.strokeStyle = '#66ccff';
         ctx.lineWidth = 2.5;
         ctx.beginPath();
         ctx.moveTo(emitterPos.x-14, emitterPos.y);
@@ -472,9 +472,11 @@
         ctx.stroke();
         ctx.beginPath();
         ctx.arc(emitterPos.x, emitterPos.y, 8, 0, Math.PI*2);
-        ctx.strokeStyle = '#ffaa66';
         ctx.stroke();
-        ctx.fillStyle = '#ffbb77aa';
+        const eg = ctx.createRadialGradient(emitterPos.x, emitterPos.y, 0, emitterPos.x, emitterPos.y, 5);
+        eg.addColorStop(0, 'rgba(255,255,255,1)');
+        eg.addColorStop(1, 'rgba(102,204,255,1)');
+        ctx.fillStyle = eg;
         ctx.arc(emitterPos.x, emitterPos.y, 5, 0, Math.PI*2);
         ctx.fill();
         ctx.restore();
