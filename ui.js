@@ -132,27 +132,31 @@
         const rotSpeedMinVal = document.getElementById('rotSpeedMinVal');
         const rotSpeedMaxVal = document.getElementById('rotSpeedMaxVal');
         if (rotSpeedMinSlider && rotSpeedMaxSlider) {
-            const updateRotSpeed = () => {
+            const updateRotSpeed = (source) => {
                 let minDeg = parseInt(rotSpeedMinSlider.value);
                 let maxDeg = parseInt(rotSpeedMaxSlider.value);
+                if (minDeg > maxDeg) {
+                    if (source === 'min') {
+                        maxDeg = minDeg;
+                        rotSpeedMaxSlider.value = maxDeg;
+                    } else {
+                        minDeg = maxDeg;
+                        rotSpeedMinSlider.value = minDeg;
+                    }
+                }
                 window._particleParams.rotSpeedMin = minDeg * Math.PI / 180;
                 window._particleParams.rotSpeedMax = maxDeg * Math.PI / 180;
                 if (rotSpeedMinVal) rotSpeedMinVal.value = minDeg;
                 if (rotSpeedMaxVal) rotSpeedMaxVal.value = maxDeg;
-                if (minDeg > maxDeg) {
-                    rotSpeedMaxSlider.value = minDeg;
-                    window._particleParams.rotSpeedMax = minDeg * Math.PI / 180;
-                    if (rotSpeedMaxVal) rotSpeedMaxVal.value = minDeg;
-                }
             };
-            rotSpeedMinSlider.addEventListener('input', updateRotSpeed);
-            rotSpeedMaxSlider.addEventListener('input', updateRotSpeed);
+            rotSpeedMinSlider.addEventListener('input', () => updateRotSpeed('min'));
+            rotSpeedMaxSlider.addEventListener('input', () => updateRotSpeed('max'));
             if (rotSpeedMinVal) {
                 rotSpeedMinVal.addEventListener('change', () => {
                     let v = parseInt(rotSpeedMinVal.value);
                     v = Math.min(parseInt(rotSpeedMinSlider.max), Math.max(parseInt(rotSpeedMinSlider.min), v));
                     rotSpeedMinSlider.value = v;
-                    updateRotSpeed();
+                    updateRotSpeed('min');
                 });
             }
             if (rotSpeedMaxVal) {
@@ -160,7 +164,7 @@
                     let v = parseInt(rotSpeedMaxVal.value);
                     v = Math.min(parseInt(rotSpeedMaxSlider.max), Math.max(parseInt(rotSpeedMaxSlider.min), v));
                     rotSpeedMaxSlider.value = v;
-                    updateRotSpeed();
+                    updateRotSpeed('max');
                 });
             }
             updateRotSpeed();
@@ -559,6 +563,9 @@
 
         updateFontStyles();
 
+        // ---- 透明度区间 ----
+        bindRange('alphaMin', 'alphaMax', 'alphaMin', 'alphaMax', true, 1);
+
         // ---- 随机调色器 ----
         const paletteMode = document.getElementById('paletteMode');
         const paletteRangeSection = document.getElementById('paletteRangeSection');
@@ -606,25 +613,54 @@
             updatePaletteUI();
         }
 
-        function bindPaletteSlider(slider, valEl, key, def, min, max) {
-            if (!slider) return;
-            slider.addEventListener('input', () => {
-                if (valEl) valEl.value = slider.value;
-                window._paletteParams[key] = parseFloat(slider.value);
-            });
-            if (valEl) valEl.addEventListener('change', () => {
-                let v = parseFloat(valEl.value) || def;
-                v = Math.min(max, Math.max(min, v));
-                slider.value = v; valEl.value = v;
-                window._paletteParams[key] = v;
-            });
+        function bindPaletteRange(minId, maxId, minKey, maxKey, absMin, absMax) {
+            const minSlider = document.getElementById(minId);
+            const maxSlider = document.getElementById(maxId);
+            const minSpan = document.getElementById(minId + 'Val');
+            const maxSpan = document.getElementById(maxId + 'Val');
+            if (!minSlider || !maxSlider) return;
+            const sync = (source) => {
+                let minVal = parseFloat(minSlider.value);
+                let maxVal = parseFloat(maxSlider.value);
+                if (minVal > maxVal) {
+                    if (source === 'min') {
+                        maxVal = minVal;
+                        maxSlider.value = maxVal;
+                    } else {
+                        minVal = maxVal;
+                        minSlider.value = minVal;
+                    }
+                }
+                window._paletteParams[minKey] = minVal;
+                window._paletteParams[maxKey] = maxVal;
+                if (minSpan) minSpan.value = minVal;
+                if (maxSpan) maxSpan.value = maxVal;
+            };
+            minSlider.addEventListener('input', () => sync('min'));
+            maxSlider.addEventListener('input', () => sync('max'));
+            if (minSpan) {
+                minSpan.addEventListener('change', () => {
+                    let v = parseFloat(minSpan.value);
+                    if (isNaN(v)) return;
+                    v = Math.min(absMax, Math.max(absMin, v));
+                    minSlider.value = v;
+                    sync('min');
+                });
+            }
+            if (maxSpan) {
+                maxSpan.addEventListener('change', () => {
+                    let v = parseFloat(maxSpan.value);
+                    if (isNaN(v)) return;
+                    v = Math.min(absMax, Math.max(absMin, v));
+                    maxSlider.value = v;
+                    sync('max');
+                });
+            }
+            sync();
         }
-        if (hueMin && hueMinVal) { bindPaletteSlider(hueMin, hueMinVal, 'hueMin', 0, 0, 360); }
-        if (hueMax && hueMaxVal) { bindPaletteSlider(hueMax, hueMaxVal, 'hueMax', 360, 0, 360); }
-        if (satMin && satMinVal) { bindPaletteSlider(satMin, satMinVal, 'satMin', 60, 0, 100); }
-        if (satMax && satMaxVal) { bindPaletteSlider(satMax, satMaxVal, 'satMax', 100, 0, 100); }
-        if (lightMin && lightMinVal) { bindPaletteSlider(lightMin, lightMinVal, 'lightMin', 40, 0, 100); }
-        if (lightMax && lightMaxVal) { bindPaletteSlider(lightMax, lightMaxVal, 'lightMax', 80, 0, 100); }
+        bindPaletteRange('hueMin', 'hueMax', 'hueMin', 'hueMax', 0, 360);
+        bindPaletteRange('satMin', 'satMax', 'satMin', 'satMax', 0, 100);
+        bindPaletteRange('lightMin', 'lightMax', 'lightMin', 'lightMax', 0, 100);
 
         if (paletteColorInput) {
             paletteColorInput.addEventListener('change', () => {

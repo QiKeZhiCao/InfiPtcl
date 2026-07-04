@@ -36,7 +36,9 @@
         maxParticles: 3000,
         backgroundColor: '#000000',
         initRotAngle: 0,
-        initRotSpread: 0
+        initRotSpread: 0,
+        alphaMin: 30,
+        alphaMax: 100
     };
     
     window._isContinuousMode = true;
@@ -244,13 +246,15 @@
             }
         }
         
+        const initAlpha = (params.alphaMin + Math.random() * (params.alphaMax - params.alphaMin)) / 100;
+        
         return {
             x: px, y: py, vx, vy, size,
             life: maxLife,
             maxLife: maxLife,
             fadeStart: fadeStart,
             fadeDuration: fadeDuration,
-            rot: initRot, rotSpeed, alpha: 1.0,
+            rot: initRot, rotSpeed, alpha: initAlpha, initAlpha: initAlpha,
             texture: texture,
             isText: isText,
             text: text,
@@ -316,13 +320,13 @@
             p.rot += p.rotSpeed * deltaSec;
             const alive = p.maxLife - p.life;
             if (alive < p.fadeStart) {
-                p.alpha = 1.0;
+                p.alpha = p.initAlpha;
             } else {
                 const fadeElapsed = alive - p.fadeStart;
                 if (fadeElapsed >= p.fadeDuration) {
                     p.alpha = 0;
                 } else {
-                    p.alpha = 1 - (fadeElapsed / p.fadeDuration);
+                    p.alpha = p.initAlpha * (1 - (fadeElapsed / p.fadeDuration));
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
