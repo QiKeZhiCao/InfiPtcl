@@ -369,6 +369,40 @@ textarea {
     scrollbar-color: #ffaa66 #2a2e3c;
 }
 
+#paletteColorInput::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+#paletteColorInput::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 10px;
+}
+
+#paletteColorInput::-webkit-scrollbar-thumb {
+    background: #ffaa66;
+    border-radius: 10px;
+}
+
+#paletteColorInput::-webkit-scrollbar-thumb:hover {
+    background: #ffcc88;
+}
+
+#paletteColorInput::-webkit-scrollbar-button {
+    display: none;
+}
+
+#paletteColorInput::-webkit-resizer {
+    background: linear-gradient(135deg, transparent 10px, #ffaa66 10px);
+    background-size: 14px 14px;
+    background-repeat: no-repeat;
+}
+
+#paletteColorInput {
+    scrollbar-width: thin;
+    scrollbar-color: #ffaa66 #2a2e3c;
+}
+
 .seq-status {
     font-size: 11px;
     background: #00000066;

@@ -62,7 +62,8 @@
                 },
                 randomRate: !!window._randomRateMode,
                 seqLoop: document.getElementById('loopSeqCheckbox')?.checked ?? false,
-                clearBeforeRender: document.getElementById('clearBeforeRender')?.checked ?? false
+                clearBeforeRender: document.getElementById('clearBeforeRender')?.checked ?? false,
+                palette: window._paletteParams ? { ...window._paletteParams, colors: [...(window._paletteParams.colors || [])] } : { mode: 'off', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, lightMin: 40, lightMax: 80, colors: [] }
             };
         }
 
@@ -83,7 +84,7 @@
 
             // Particle params
             if (state.particleParams) {
-                window._particleParams = state.particleParams;
+                Object.assign(window._particleParams, state.particleParams);
                 // Sync sliders
                 const sliderIds = [
                     ['emitRate','emitRate',false],['sizeMin','sizeMin',false],['sizeMax','sizeMax',false],
@@ -154,7 +155,9 @@
                 window._particleTextMode = state.textMode.enabled;
                 window._particleTextContent = state.textMode.content;
                 window._particleSelectedFont = state.textMode.font;
-                window._particleFontStyles = state.textMode.styles;
+                if (state.textMode.styles) {
+                    Object.assign(window._particleFontStyles, state.textMode.styles);
+                }
                 const styles = state.textMode.styles || {};
                 const fi = document.getElementById('fontItalic');
                 if (fi) fi.checked = !!styles.italic;
@@ -217,6 +220,50 @@
             if (state.clearBeforeRender !== undefined) {
                 const cbr = document.getElementById('clearBeforeRender');
                 if (cbr) cbr.checked = state.clearBeforeRender;
+            }
+
+            // Palette
+            if (state.palette) {
+                const p = state.palette;
+                window._paletteParams.mode = p.mode || 'off';
+                window._paletteParams.hueMin = p.hueMin ?? 0;
+                window._paletteParams.hueMax = p.hueMax ?? 360;
+                window._paletteParams.sat = p.sat ?? 80;
+                window._paletteParams.light = p.light ?? 65;
+                window._paletteParams.colors = Array.isArray(p.colors) ? [...p.colors] : [];
+                // Sync DOM
+                const pm = document.getElementById('paletteMode');
+                if (pm) { pm.value = window._paletteParams.mode; pm.dispatchEvent(new Event('change')); }
+                const hm = document.getElementById('hueMin');
+                const hmv = document.getElementById('hueMinVal');
+                if (hm) hm.value = window._paletteParams.hueMin;
+                if (hmv) hmv.value = window._paletteParams.hueMin;
+                const hm2 = document.getElementById('hueMax');
+                const hmv2 = document.getElementById('hueMaxVal');
+                if (hm2) hm2.value = window._paletteParams.hueMax;
+                if (hmv2) hmv2.value = window._paletteParams.hueMax;
+                const sm = document.getElementById('satMin');
+                const smv = document.getElementById('satMinVal');
+                if (sm) sm.value = window._paletteParams.satMin;
+                if (smv) smv.value = window._paletteParams.satMin;
+                const sm2 = document.getElementById('satMax');
+                const smv2 = document.getElementById('satMaxVal');
+                if (sm2) sm2.value = window._paletteParams.satMax;
+                if (smv2) smv2.value = window._paletteParams.satMax;
+                const lm = document.getElementById('lightMin');
+                const lmv = document.getElementById('lightMinVal');
+                if (lm) lm.value = window._paletteParams.lightMin;
+                if (lmv) lmv.value = window._paletteParams.lightMin;
+                const lm2 = document.getElementById('lightMax');
+                const lmv2 = document.getElementById('lightMaxVal');
+                if (lm2) lm2.value = window._paletteParams.lightMax;
+                if (lmv2) lmv2.value = window._paletteParams.lightMax;
+                // Sync textarea
+                const pci = document.getElementById('paletteColorInput');
+                if (pci) {
+                    const colors = window._paletteParams.colors || [];
+                    pci.value = colors.length > 0 ? '{' + colors.join(', ') + '}' : '';
+                }
             }
         }
 

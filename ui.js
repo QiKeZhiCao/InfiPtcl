@@ -559,6 +559,79 @@
 
         updateFontStyles();
 
+        // ---- 随机调色器 ----
+        const paletteMode = document.getElementById('paletteMode');
+        const paletteRangeSection = document.getElementById('paletteRangeSection');
+        const paletteListSection = document.getElementById('paletteListSection');
+        const hueMin = document.getElementById('hueMin');
+        const hueMinVal = document.getElementById('hueMinVal');
+        const hueMax = document.getElementById('hueMax');
+        const hueMaxVal = document.getElementById('hueMaxVal');
+        const satMin = document.getElementById('satMin');
+        const satMinVal = document.getElementById('satMinVal');
+        const satMax = document.getElementById('satMax');
+        const satMaxVal = document.getElementById('satMaxVal');
+        const lightMin = document.getElementById('lightMin');
+        const lightMinVal = document.getElementById('lightMinVal');
+        const lightMax = document.getElementById('lightMax');
+        const lightMaxVal = document.getElementById('lightMaxVal');
+        const paletteColorInput = document.getElementById('paletteColorInput');
+
+        function parseColorSet(str) {
+            str = str.trim();
+            if (!str.startsWith('{') || !str.endsWith('}')) return [];
+            const inner = str.slice(1, -1).trim();
+            if (!inner) return [];
+            return inner.split(',').map(s => {
+                let hex = s.trim();
+                if (!hex.startsWith('#')) hex = '#' + hex;
+                return hex;
+            }).filter(h => /^#[0-9a-f]{6}$/i.test(h));
+        }
+        function syncTextareaFromColors() {
+            if (!paletteColorInput) return;
+            const colors = window._paletteParams.colors || [];
+            paletteColorInput.value = colors.length > 0 ? '{' + colors.join(', ') + '}' : '';
+        }
+
+        function updatePaletteUI() {
+            const mode = paletteMode ? paletteMode.value : 'off';
+            if (paletteRangeSection) paletteRangeSection.style.display = mode === 'range' ? '' : 'none';
+            if (paletteListSection) paletteListSection.style.display = mode === 'list' ? '' : 'none';
+            window._paletteParams.mode = mode;
+            if (mode === 'list') syncTextareaFromColors();
+        }
+        if (paletteMode) {
+            paletteMode.addEventListener('change', updatePaletteUI);
+            updatePaletteUI();
+        }
+
+        function bindPaletteSlider(slider, valEl, key, def, min, max) {
+            if (!slider) return;
+            slider.addEventListener('input', () => {
+                if (valEl) valEl.value = slider.value;
+                window._paletteParams[key] = parseFloat(slider.value);
+            });
+            if (valEl) valEl.addEventListener('change', () => {
+                let v = parseFloat(valEl.value) || def;
+                v = Math.min(max, Math.max(min, v));
+                slider.value = v; valEl.value = v;
+                window._paletteParams[key] = v;
+            });
+        }
+        if (hueMin && hueMinVal) { bindPaletteSlider(hueMin, hueMinVal, 'hueMin', 0, 0, 360); }
+        if (hueMax && hueMaxVal) { bindPaletteSlider(hueMax, hueMaxVal, 'hueMax', 360, 0, 360); }
+        if (satMin && satMinVal) { bindPaletteSlider(satMin, satMinVal, 'satMin', 60, 0, 100); }
+        if (satMax && satMaxVal) { bindPaletteSlider(satMax, satMaxVal, 'satMax', 100, 0, 100); }
+        if (lightMin && lightMinVal) { bindPaletteSlider(lightMin, lightMinVal, 'lightMin', 40, 0, 100); }
+        if (lightMax && lightMaxVal) { bindPaletteSlider(lightMax, lightMaxVal, 'lightMax', 80, 0, 100); }
+
+        if (paletteColorInput) {
+            paletteColorInput.addEventListener('change', () => {
+                window._paletteParams.colors = parseColorSet(paletteColorInput.value);
+            });
+        }
+
         if (window._updateCoordDisplay) window._updateCoordDisplay();
         const exInput = document.getElementById('emitterX');
         const eyInput = document.getElementById('emitterY');

@@ -2,6 +2,8 @@
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
+    const _tintCanvas = document.createElement('canvas');
+    const _tintCtx = _tintCanvas.getContext('2d');
     let particles = [];
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
@@ -57,6 +59,7 @@
     window._particleAnimMode = 0;
     window._particleAnimFps = 10;
     window._particleSimTime = 0;
+    window._paletteParams = { mode: 'off', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, lightMin: 40, lightMax: 80, colors: [] };
 
     window._resetDefaultTexture = function() {
         createDefaultTexture();
@@ -84,6 +87,24 @@
     // ---------- 核心函数 ----------
     function randomRange(min, max) {
         return min + Math.random() * (max - min);
+    }
+    function hexToHsl(hex) {
+        hex = hex.replace(/^#/, '');
+        const r = parseInt(hex.slice(0, 2), 16) / 255;
+        const g = parseInt(hex.slice(2, 4), 16) / 255;
+        const b = parseInt(hex.slice(4, 6), 16) / 255;
+        const mx = Math.max(r, g, b), mn = Math.min(r, g, b);
+        let h, s, l = (mx + mn) / 2;
+        if (mx === mn) { h = 0; s = 0; }
+        else {
+            const d = mx - mn;
+            s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+            if (mx === r) h = ((g - b) / d + (g < b ? 6 : 0)) / 6;
+            else if (mx === g) h = ((b - r) / d + 2) / 6;
+            else h = ((r - g) / d + 4) / 6;
+            h *= 360;
+        }
+        return { h, s: s * 100, l: l * 100 };
     }
     
     function updateParticleCount() {
@@ -209,6 +230,20 @@
             }
         }
         
+        const palette = window._paletteParams;
+        let hue, sat, light;
+        if (palette && palette.mode !== 'off') {
+            if (palette.mode === 'range') {
+                hue = palette.hueMin + Math.random() * (palette.hueMax - palette.hueMin);
+                sat = palette.satMin + Math.random() * (palette.satMax - palette.satMin);
+                light = palette.lightMin + Math.random() * (palette.lightMax - palette.lightMin);
+            } else if (palette.mode === 'list' && palette.colors.length > 0) {
+                const hex = palette.colors[Math.floor(Math.random() * palette.colors.length)];
+                const hsl = hexToHsl(hex);
+                hue = hsl.h; sat = hsl.s; light = hsl.l;
+            }
+        }
+        
         return {
             x: px, y: py, vx, vy, size,
             life: maxLife,
@@ -222,7 +257,8 @@
             font: font,
             styles: styles,
             textureIndex: textureIndex,
-            birthTime: birthTime
+            birthTime: birthTime,
+            hue, sat, light
         };
     }
 
@@ -317,7 +353,7 @@
                 ctx.font = fontStyle + ' ' + fontWeight + ' ' + fontSize + 'px "' + fontFamily + '"';
                 ctx.textAlign = 'center';
                 ctx.textBaseline = 'middle';
-                ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+                ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,255,255,${p.alpha})`;
                 const text = p.text;
                 const letterSpacing = styles.letterSpacing || 0;
                 let lineLeft, lineRight;
@@ -375,11 +411,39 @@
                     useTex = texs[curFrame];
                 }
                 if (useTex && useTex.complete) {
-                    ctx.drawImage(useTex, -half, -half, p.size, p.size);
+                    if (p.hue !== undefined) {
+                        const ts = Math.ceil(p.size);
+                        if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
+                        _tintCtx.clearRect(0, 0, ts, ts);
+                        _tintCtx.drawImage(useTex, 0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'color';
+                        _tintCtx.fillStyle = `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`;
+                        _tintCtx.fillRect(0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'destination-in';
+                        _tintCtx.drawImage(useTex, 0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(_tintCanvas, -half, -half);
+                    } else {
+                        ctx.drawImage(useTex, -half, -half, p.size, p.size);
+                    }
                 } else if (texs.length > 0 && texs[0] && texs[0].complete) {
-                    ctx.drawImage(texs[0], -half, -half, p.size, p.size);
+                    if (p.hue !== undefined) {
+                        const ts = Math.ceil(p.size);
+                        if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
+                        _tintCtx.clearRect(0, 0, ts, ts);
+                        _tintCtx.drawImage(texs[0], 0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'color';
+                        _tintCtx.fillStyle = `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`;
+                        _tintCtx.fillRect(0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'destination-in';
+                        _tintCtx.drawImage(texs[0], 0, 0, ts, ts);
+                        _tintCtx.globalCompositeOperation = 'source-over';
+                        ctx.drawImage(_tintCanvas, -half, -half);
+                    } else {
+                        ctx.drawImage(texs[0], -half, -half, p.size, p.size);
+                    }
                 } else {
-                    ctx.fillStyle = `rgba(255,180,100,${p.alpha})`;
+                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,180,100,${p.alpha})`;
                     ctx.beginPath();
                     ctx.arc(0, 0, half, 0, Math.PI*2);
                     ctx.fill();
