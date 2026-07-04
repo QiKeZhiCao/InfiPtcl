@@ -225,6 +225,64 @@
                 </label>
             </div>
         </div>
+
+        <!-- 调色器 -->
+        <div class="param-row" style="margin-top:6px;">
+            <span>调色器</span>
+            <select id="paletteMode" style="margin-left:auto; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+                <option value="off">关闭</option>
+                <option value="range">变化区间</option>
+                <option value="list">取值集合</option>
+            </select>
+        </div>
+
+        <div id="paletteRangeSection" class="param-group" style="display:none;">
+            <div class="group-content">
+                <div class="param-row">
+                    <span>色相</span>
+                    <div class="range-controls">
+                        <input type="number" id="hueMinVal" class="range-value" step="1" value="0" style="width:50px;">
+                        <input type="range" id="hueMin" min="0" max="360" step="1" value="0" style="flex:1; min-width:40px;">
+                        <span class="range-sep">~</span>
+                        <input type="range" id="hueMax" min="0" max="360" step="1" value="360" style="flex:1; min-width:40px;">
+                        <input type="number" id="hueMaxVal" class="range-value" step="1" value="360" style="width:50px;">
+                        <span class="range-unit">°</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span>饱和度</span>
+                    <div class="range-controls">
+                        <input type="number" id="satMinVal" class="range-value" step="1" value="60" style="width:50px;">
+                        <input type="range" id="satMin" min="0" max="100" step="1" value="60" style="flex:1; min-width:40px;">
+                        <span class="range-sep">~</span>
+                        <input type="range" id="satMax" min="0" max="100" step="1" value="100" style="flex:1; min-width:40px;">
+                        <input type="number" id="satMaxVal" class="range-value" step="1" value="100" style="width:50px;">
+                        <span class="range-unit">%</span>
+                    </div>
+                </div>
+                <div class="param-row">
+                    <span>亮度</span>
+                    <div class="range-controls">
+                        <input type="number" id="lightMinVal" class="range-value" step="1" value="40" style="width:50px;">
+                        <input type="range" id="lightMin" min="0" max="100" step="1" value="40" style="flex:1; min-width:40px;">
+                        <span class="range-sep">~</span>
+                        <input type="range" id="lightMax" min="0" max="100" step="1" value="80" style="flex:1; min-width:40px;">
+                        <input type="number" id="lightMaxVal" class="range-value" step="1" value="80" style="width:50px;">
+                        <span class="range-unit">%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="paletteListSection" class="param-group" style="display:none;">
+            <div class="group-content">
+                <div class="param-row">
+                    <span>取值集合</span>
+                    <textarea id="paletteColorInput" rows="2" placeholder='{#2363A1, #114514, #ff8844}' style="flex:1;"></textarea>
+                </div>
+            </div>
+        </div>
+
         <!-- ===== 外观结束 ===== -->
 
         <!-- 3. 运动 -->
