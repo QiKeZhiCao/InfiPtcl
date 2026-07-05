@@ -510,7 +510,16 @@ select option {
 }
 
 /* 下拉框强化样式 */
-#exportType,
+#exportType {
+    color: white;
+    cursor: pointer;
+    background: #1e1f2c;
+    border: 1px solid #6a6f9a;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+}
 .range-value {
     color: white;
     cursor: pointer;
