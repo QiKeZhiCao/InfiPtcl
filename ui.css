@@ -151,7 +151,9 @@ body.resizing {
     padding: 6px 16px 8px;
     border: 2px solid rgba(102,204,255,0.3);
     border-radius: 8px 8px 0 0;
-    background: #12141e;
+    background: rgba(18, 20, 30, 0.80);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     color: #b0b8d0;
     font-size: 12px;
     font-family: inherit;
@@ -162,7 +164,7 @@ body.resizing {
 }
 .panel-tab.active {
     border-bottom-color: transparent;
-    background: #0c0e18;
+    background: rgba(12, 14, 24, 0.85);
     color: #66ccff;
 }
 .panel-tab.active::after {
@@ -172,7 +174,7 @@ body.resizing {
     right: 0;
     top: 100%;
     height: 5px;
-    background: #0c0e18;
+    background: rgba(12, 14, 24, 0.85);
     pointer-events: none;
 }
 .panel-tab.active:hover {
@@ -501,7 +503,9 @@ textarea {
     border-right-color: rgba(102,204,255,0.3);
     border-radius: 8px 0 0 8px;
     border-radius: 10px 0 0 10px;
-    background: #12141e;
+    background: rgba(18, 20, 30, 0.80);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -516,8 +520,8 @@ textarea {
 }
 .fn-tab.active {
     border-right-color: transparent;
-    box-shadow: 7px 0 0 0 #0c0e18;
-    background: #0c0e18;
+    box-shadow: 7px 0 0 0 rgba(12, 14, 24, 0.80);
+    background: rgba(12, 14, 24, 0.85);
     color: #66ccff;
 }
 .fn-tab.active::after {
@@ -527,7 +531,7 @@ textarea {
     top: 2px;
     bottom: 2px;
     width: 7px;
-    background: #0c0e18;
+    background: rgba(12, 14, 24, 0.85);
 }
 .fn-tab.disabled {
     opacity: 0.35;
