@@ -25,7 +25,8 @@
 ### 外观
 - **图片模式**：上传多张纹理（PNG/JPEG/WebP/SVG），支持动画播放和拖拽排序
 - **文本模式**：自定义文字，13 种内置字体，支持导入外部字体
-- **调色器**：HSL 变化区间随机着色 / 十六进制颜色列表取值
+- **调色器**：HSL 变化区间随机着色 / 十六进制颜色列表取值 / MIDI 音高映射
+- **染色强度**：独立控制色相/饱和度插值，保留原纹理亮度层次
 
 ### 运动物理
 - 速度区间、加速度（独立 X/Y 轴）、空气阻力
@@ -65,7 +66,7 @@ toast.js            Toast 弹窗通知
 theme.css           视觉主题（颜色/字体/动效）
 ui.css              布局框架（定位/尺寸/响应式）
 jszip.min.js        第三方：ZIP 读写
-midi-parser.js      第三方：MIDI 解析
+midiread.js          自定义：轻量 MIDI 解析
 MapleMono-NF-CN-Regular.ttf  默认 UI 字体
 ```
 
@@ -75,7 +76,7 @@ MapleMono-NF-CN-Regular.ttf  默认 UI 字体
 - **语言**：Vanilla JavaScript（IIFE + `window._` 全局命名空间）
 - **样式**：CSS3（Flexbox/Grid/Animation/backdrop-filter）
 - **动画循环**：`requestAnimationFrame`
-- **第三方**：jszip.min.js、midi-parser.js
+- **第三方**：jszip.min.js
 - **无构建工具、无框架**，开箱即用
 
 ## 许可

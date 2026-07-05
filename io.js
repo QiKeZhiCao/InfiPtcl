@@ -63,7 +63,9 @@
                 randomRate: !!window._randomRateMode,
                 seqLoop: document.getElementById('loopSeqCheckbox')?.checked ?? false,
                 clearBeforeRender: document.getElementById('clearBeforeRender')?.checked ?? false,
-                palette: window._paletteParams ? { ...window._paletteParams, colors: [...(window._paletteParams.colors || [])] } : { mode: 'off', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, lightMin: 40, lightMax: 80, colors: [] }
+                palette: window._paletteParams ? { ...window._paletteParams, tintIntensity: window._tintIntensity ?? 100, colors: [...(window._paletteParams.colors || [])] } : { mode: 'list', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, colors: [], tintIntensity: 100 },
+                pitchColorMap: window._pitchColorMap ? { ...window._pitchColorMap } : {},
+                timelineSource: document.getElementById('timelineSource')?.value || 'manual'
             };
         }
 
@@ -92,7 +94,7 @@
                     ['gravityY','gravityY',false],['damping','damping',true],['emitRadius','emitRadius',false],
                     ['maxParticles','maxParticles',false],['fadeStartMin','fadeStartMin',true],['fadeStartMax','fadeStartMax',true],
                     ['fadeDurationMin','fadeDurationMin',true],['fadeDurationMax','fadeDurationMax',true],
-                    ['alphaMin','alphaMin',true],['alphaMax','alphaMax',true]
+                    ['alphaMin','alphaMin',false],['alphaMax','alphaMax',false]
                 ];
                 for (const [id, prop, isFloat] of sliderIds) {
                     const slider = document.getElementById(id);
@@ -199,6 +201,7 @@
                 const bcv = document.getElementById('burstCountVal');
                 if (bc) bc.value = state.sequence.burstCount;
                 if (bcv) bcv.value = state.sequence.burstCount;
+                if (bc) bc.dispatchEvent(new Event('input'));
                 const ps = document.getElementById('precisionSelect');
                 if (ps) ps.value = state.sequence.precision;
                 if (window._setSequenceMode) window._setSequenceMode(state.sequence.continuous);
@@ -226,7 +229,7 @@
             // Palette
             if (state.palette) {
                 const p = state.palette;
-                window._paletteParams.mode = p.mode || 'off';
+                window._paletteParams.mode = p.mode || 'list';
                 window._paletteParams.hueMin = p.hueMin ?? 0;
                 window._paletteParams.hueMax = p.hueMax ?? 360;
                 window._paletteParams.sat = p.sat ?? 80;
@@ -251,20 +254,18 @@
                 const smv2 = document.getElementById('satMaxVal');
                 if (sm2) sm2.value = window._paletteParams.satMax;
                 if (smv2) smv2.value = window._paletteParams.satMax;
-                const lm = document.getElementById('lightMin');
-                const lmv = document.getElementById('lightMinVal');
-                if (lm) lm.value = window._paletteParams.lightMin;
-                if (lmv) lmv.value = window._paletteParams.lightMin;
-                const lm2 = document.getElementById('lightMax');
-                const lmv2 = document.getElementById('lightMaxVal');
-                if (lm2) lm2.value = window._paletteParams.lightMax;
-                if (lmv2) lmv2.value = window._paletteParams.lightMax;
                 // Sync textarea
                 const pci = document.getElementById('paletteColorInput');
                 if (pci) {
                     const colors = window._paletteParams.colors || [];
                     pci.value = colors.length > 0 ? '{' + colors.join(', ') + '}' : '';
                 }
+                // Restore tint intensity
+                window._tintIntensity = p.tintIntensity ?? 100;
+                const tiS = document.getElementById('tintIntensity');
+                const tiV = document.getElementById('tintIntensityVal');
+                if (tiS) tiS.value = window._tintIntensity;
+                if (tiV) tiV.value = window._tintIntensity;
             }
         }
 
@@ -383,7 +384,7 @@
 
                     // Restore MIDI
                     if (midiData && midiData.tracks && midiData.tracks.length > 0) {
-                        const tracks = midiData.tracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps }));
+                        const tracks = midiData.tracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps, notes: t.notes }));
                         if (window._setMidiTracks) window._setMidiTracks(tracks);
                         const mts = document.getElementById('midiTrackSelect');
                         if (mts) {
@@ -398,8 +399,20 @@
                         }
                         const mfn = document.getElementById('midiFileName');
                         if (mfn) mfn.innerText = midiData.fileName || '导入的MIDI文件';
+                        // Restore pitchColorMap before loading timeline
+                        if (state.pitchColorMap && window._pitchColorMap) {
+                            Object.assign(window._pitchColorMap, state.pitchColorMap);
+                        }
+                        const ts = document.getElementById('timelineSource');
+                        if (ts && state.timelineSource) {
+                            ts.value = state.timelineSource;
+                            if (window._timelineSource !== undefined) window._timelineSource = state.timelineSource;
+                        }
                         if (window._updateTimelineFromSelectedTrack) window._updateTimelineFromSelectedTrack(true);
+                        window._updateMidiOptionState?.();
                     }
+
+                    window._updateMidiOptionState?.();
 
                     // Update info panel
                     const fileName = file.name;
@@ -411,7 +424,7 @@
                         : 'ZIP压缩包';
                     document.getElementById('exportType').value = ext;
 
-                    Toast.success('项目导入成功');
+                    Toast.success('工程导入成功');
                     console.log('[IE] Import complete');
                 } catch (err) {
                     console.error('[IE] Import error:', err);
@@ -458,7 +471,7 @@
                         midi: midiTracks.length > 0 ? {
                             fileName: midiFileName,
                             selectedTrack: midiSelectedTrack,
-                            tracks: midiTracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps }))
+                            tracks: midiTracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps, notes: t.notes }))
                         } : null
                     };
                     const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -483,7 +496,7 @@
                         mf.file('tracks.json', JSON.stringify({
                             fileName: midiFileName,
                             selectedTrack: midiSelectedTrack,
-                            tracks: midiTracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps }))
+                            tracks: midiTracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps, notes: t.notes }))
                         }, null, 2));
                     }
                     const blob = await zip.generateAsync({ type: 'blob' });

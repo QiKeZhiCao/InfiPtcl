@@ -106,7 +106,6 @@
                 let actualEnd;
                 if (userEnd > seqTotal) {
                     actualEnd = seqTotal + maxParticleLife;
-                    exportStatusMsg.innerText = `导出时长超出序列结束，自动延长至粒子完全消失（${actualEnd.toFixed(2)}s）`;
                 } else {
                     actualEnd = userEnd;
                 }
@@ -115,7 +114,6 @@
                     Toast.error('导出时长为零或已超出序列结束。');
                     return;
                 }
-                exportStatusMsg.innerText = `序列模式：将从 ${currentTime.toFixed(2)}s 渲染 ${durationSec.toFixed(2)}s 片段（至 ${actualEnd.toFixed(2)}s）`;
             } else {
                 Toast.error('时间戳数组无效，无法渲染序列模式。');
                 return;
@@ -147,8 +145,9 @@
         if (cancelRow) cancelRow.style.display = 'flex';
         exportProgressRow.style.display = 'flex';
         exportProgress.value = 0;
-        exportProgressText.innerText = '0.00%';
+        exportProgressText.innerText = `0/${totalFrames} 0%`;
         setPlaybackEnabled(false);
+        Toast.info('开始渲染...');
         
         originalBg = window.params?.backgroundColor || '#000000';
         if (window.params) window.params.backgroundColor = 'transparent';
@@ -217,12 +216,31 @@
         // 获取 canvas 元素（修复未定义错误）
         const canvas = document.getElementById('particleCanvas');
         
-        exportStatusMsg.innerText = `预计算完成，开始渲染 ${totalFrames} 帧...`;
+        const renderStart = isSequenceMode ? currentTime : 0;
+        const renderEnd = renderStart + durationSec;
         
         // 【核心修复】所有帧统一：先模拟 → 后截图
         for (let frame = 0; frame < totalFrames; frame++) {
             if (exportCancel) break;
             window._stepSimulation(step);
+            simulatedTime += step;
+
+            if (isSequenceMode) {
+                while (nextPulseIdx < pulseTimes.length && pulseTimes[nextPulseIdx] <= simulatedTime) {
+                    let forceHsl;
+                    const pitches = window._sequencePitches || [];
+                    const pitchColorMap = window._pitchColorMap || {};
+                    const pitch = pitches[nextPulseIdx];
+                    if (pitch != null && pitchColorMap[pitch]) {
+                        const hsl = window._hexToHsl(pitchColorMap[pitch]);
+                        forceHsl = { h: hsl.h, s: hsl.s, l: hsl.l };
+                    }
+                    for (let i = 0; i < burstCount; i++) {
+                        window.burstEmit(1, forceHsl);
+                    }
+                    nextPulseIdx++;
+                }
+            }
             // 异步渲染等待，避免偶发截图空白
             await new Promise(resolve => requestAnimationFrame(resolve));
 
@@ -241,10 +259,10 @@
                 break;
             }
             capturedFrames++;
-            const progress = (capturedFrames / totalFrames) * 100;
-            exportProgress.value = progress;
-            exportProgressText.innerText = `${progress.toFixed(2)}%`;
-            exportStatusMsg.innerText = `渲染中 ${capturedFrames}/${totalFrames}`;
+            exportProgress.value = (capturedFrames / totalFrames) * 100;
+            const pct = ((capturedFrames / totalFrames) * 100).toFixed(1);
+            exportProgressText.innerText = `${capturedFrames}/${totalFrames} ${pct}%`;
+            exportStatusMsg.innerText = `渲染区间：${renderStart.toFixed(2)}s → ${renderEnd.toFixed(2)}s`;
         }
         
         // 恢复所有原始状态
@@ -257,7 +275,11 @@
         if (cancelRow) cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         
-        exportStatusMsg.innerText = exportCancel ? '渲染已取消。' : `渲染完成！共 ${capturedFrames} 帧 PNG 已保存至所选文件夹。`;
+        if (exportCancel) {
+            Toast.warn('渲染已取消');
+        } else {
+            Toast.success('渲染完成');
+        }
         isExporting = false;
     }
     
@@ -271,7 +293,6 @@
         const cancelRow = document.getElementById('cancelExportRow');
         if (cancelRow) cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
-        exportStatusMsg.innerText = '渲染已取消。';
         isExporting = false;
     }
     

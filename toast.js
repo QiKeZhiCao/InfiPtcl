@@ -1,4 +1,6 @@
 (function() {
+    let _dedupMsg = null;
+
     const Toast = {
         container: null,
 
@@ -12,6 +14,9 @@
         },
 
         show(text, type, duration) {
+            if (_dedupMsg === text) return;
+            _dedupMsg = text;
+            Promise.resolve().then(() => { _dedupMsg = null; });
             type = type || 'info';
             duration = duration || 4000;
 

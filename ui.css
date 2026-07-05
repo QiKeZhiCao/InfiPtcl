@@ -117,15 +117,22 @@ canvas {
     overflow: hidden;
 }
 
+.panel-border-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+
 .resize-handle {
     position: absolute;
     left: 0;
     top: 0;
     bottom: 0;
-    width: 3px;
+    width: 5px;
     cursor: ew-resize;
     z-index: 30;
-    border-radius: 12px 0 0 12px;
 }
 
 body.resizing {
@@ -144,6 +151,8 @@ body.resizing {
     padding: 0;
     min-width: 340px;
     max-width: 500px;
+    pointer-events: none;
+    background: rgba(0,0,0,0.01);
 }
 .panel-tab {
     flex: none;
@@ -151,36 +160,30 @@ body.resizing {
     padding: 6px 16px 8px;
     border: 2px solid rgba(102,204,255,0.3);
     border-radius: 8px 8px 0 0;
-    background: #12141e;
+    background: rgba(0,0,0,0.01);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     color: #b0b8d0;
     font-size: 12px;
     font-family: inherit;
     cursor: pointer;
+    pointer-events: auto;
     text-align: center;
     transition: 0.15s;
     outline: none;
 }
 .panel-tab.active {
     border-bottom-color: transparent;
-    background: #0c0e18;
     color: #66ccff;
-}
-.panel-tab.active::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    height: 5px;
-    background: #0c0e18;
-    pointer-events: none;
 }
 .panel-tab.active:hover {
     border-bottom-color: transparent;
+    background: rgba(0,0,0,0.01);
 }
 .panel-tab:hover {
     border-color: #66ccff;
     color: #99ddff;
+    background: rgba(0,0,0,0.01);
 }
 
 .panel-content {
@@ -237,6 +240,11 @@ body.resizing {
 .group-content {
     padding-left: 24px;
     border-left: 1px solid rgba(102,204,255,0.3);
+}
+
+#midiSection .param-group > .group-content {
+    padding-left: 0;
+    border-left: none;
 }
 
 .range-controls {
@@ -414,6 +422,37 @@ textarea {
     }
 }
 
+/* ===== 渲染进度条主题色 ===== */
+#exportProgress {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #3a3e5a;
+    border: none;
+    flex: 1;
+}
+#exportProgress::-webkit-progress-bar {
+    background: #3a3e5a;
+    border-radius: 3px;
+}
+#exportProgress::-webkit-progress-value {
+    background: #66ccff;
+    border-radius: 3px;
+    transition: width 0.15s ease;
+}
+#exportProgress::-moz-progress-bar {
+    background: #66ccff;
+    border-radius: 3px;
+}
+
+#exportStatusMsg {
+    text-align: center;
+    font-size: 12px;
+    color: #8a90b0;
+    padding: 4px 0;
+}
+
 /* ===== 纹理排序列表（拖拽排序网格） ===== */
 .texture-order-list {
     position: relative;
@@ -482,6 +521,7 @@ textarea {
     flex-direction: column;
     gap: 4px;
     pointer-events: none;
+    background: rgba(0,0,0,0.01);
 }
 .fn-group {
     display: flex;
@@ -501,7 +541,9 @@ textarea {
     border-right-color: rgba(102,204,255,0.3);
     border-radius: 8px 0 0 8px;
     border-radius: 10px 0 0 10px;
-    background: #12141e;
+    background: rgba(0,0,0,0.01);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -516,27 +558,89 @@ textarea {
 }
 .fn-tab.active {
     border-right-color: transparent;
-    box-shadow: 7px 0 0 0 #0c0e18;
-    background: #0c0e18;
     color: #66ccff;
-}
-.fn-tab.active::after {
-    content: '';
-    position: absolute;
-    left: calc(100% + 5px);
-    top: 2px;
-    bottom: 2px;
-    width: 7px;
-    background: #0c0e18;
 }
 .fn-tab.disabled {
     opacity: 0.35;
     pointer-events: none;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
 }
 .fn-tab.active:hover {
     border-right-color: transparent;
+    background: rgba(0,0,0,0.01);
 }
 .fn-tab:hover {
     border-color: #66ccff;
     color: #99ddff;
+    background: rgba(0,0,0,0.01);
+}
+
+/* ===== 音高-颜色映射列表 ===== */
+#midiPitchRows {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #66ccff #2a2e3c;
+}
+#midiPitchRows::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+#midiPitchRows::-webkit-scrollbar-track {
+    background: #2a2e3c;
+    border-radius: 5px;
+}
+#midiPitchRows::-webkit-scrollbar-thumb {
+    background: #66ccff;
+    border-radius: 5px;
+}
+.pitch-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 4px;
+    border-radius: 4px;
+}
+.pitch-row .pitch-name-num {
+    display: flex;
+    gap: 4px;
+    width: 72px;
+    flex-shrink: 0;
+    align-items: baseline;
+}
+.pitch-row .pitch-name {
+    text-align: right;
+    font-size: 12px;
+    color: #99ddff;
+    font-weight: bold;
+}
+.pitch-row .pitch-num {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+}
+.pitch-row .pitch-swatch {
+    width: 24px;
+    height: 24px;
+    border: 2px solid #aaeeff;
+    border-radius: 4px;
+    cursor: pointer;
+    flex-shrink: 0;
+    background-size: cover;
+}
+.pitch-row .pitch-hex {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    width: 60px;
+    flex-shrink: 0;
+}
+.pitch-empty {
+    text-align: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    padding: 8px 0;
 }

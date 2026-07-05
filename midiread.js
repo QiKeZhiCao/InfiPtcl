@@ -1,4 +1,4 @@
-// midi-parser.js - 轻量离线MIDI解析器，支持多轨分离
+// midiread.js - 轻量离线MIDI解析器，支持多轨分离
 (function(){
     window.MidiParser = {
         parse: function(arrayBuffer) {
@@ -127,20 +127,28 @@
                 }
                 
                 var timestamps = [];
+                var notes = [];
                 var microsecondsPerTick = tempo / timebase;
                 for (var j=0; j<events.length; j++) {
                     var ev = events[j];
                     if (ev.type === "note") {
                         var startSeconds = ev.start * microsecondsPerTick / 1000000;
                         timestamps.push(startSeconds);
+                        notes.push({
+                            time: startSeconds,
+                            pitch: ev.pitch,
+                            velocity: ev.velocity
+                        });
                     }
                 }
                 timestamps.sort(function(a,b){ return a-b; });
+                notes.sort(function(a,b){ return a.time - b.time; });
                 
                 tracksInfo.push({
                     index: t,
                     name: trackName,
                     timestamps: timestamps,
+                    notes: notes,
                     noteCount: timestamps.length
                 });
             }

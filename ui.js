@@ -27,6 +27,12 @@
             document.addEventListener('mousemove', onMouseMove);
             document.addEventListener('mouseup', onMouseUp);
         });
+
+        const hSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        hSvg.setAttribute('class', 'handle-svg');
+        hSvg.setAttribute('width', '100%');
+        hSvg.setAttribute('height', '100%');
+        handle.prepend(hSvg);
     }
     function initUI() {
         // 初始化随机模式为关闭
@@ -578,11 +584,8 @@
         const satMinVal = document.getElementById('satMinVal');
         const satMax = document.getElementById('satMax');
         const satMaxVal = document.getElementById('satMaxVal');
-        const lightMin = document.getElementById('lightMin');
-        const lightMinVal = document.getElementById('lightMinVal');
-        const lightMax = document.getElementById('lightMax');
-        const lightMaxVal = document.getElementById('lightMaxVal');
         const paletteColorInput = document.getElementById('paletteColorInput');
+        const paletteMidiSection = document.getElementById('paletteMidiSection');
 
         function parseColorSet(str) {
             str = str.trim();
@@ -602,16 +605,44 @@
         }
 
         function updatePaletteUI() {
-            const mode = paletteMode ? paletteMode.value : 'off';
+            const mode = paletteMode ? paletteMode.value : 'list';
             if (paletteRangeSection) paletteRangeSection.style.display = mode === 'range' ? '' : 'none';
             if (paletteListSection) paletteListSection.style.display = mode === 'list' ? '' : 'none';
+            if (paletteMidiSection) paletteMidiSection.style.display = mode === 'midi' ? '' : 'none';
             window._paletteParams.mode = mode;
             if (mode === 'list') syncTextareaFromColors();
+            if (mode === 'midi') {
+                window._renderPitchColorRows?.();
+                const tracks = window._currentMidiTracks;
+                if (tracks && tracks.length > 0) {
+                    const notes = window._midiNotes;
+                    if (!notes || notes.length === 0) {
+                        Toast.warn('所选轨道无音符事件');
+                    }
+                }
+            }
+
         }
         if (paletteMode) {
             paletteMode.addEventListener('change', updatePaletteUI);
             updatePaletteUI();
         }
+
+        function updateMidiOptionState() {
+            const opt = paletteMode?.querySelector('option[value="midi"]');
+            if (!opt) return;
+            const hasMidi = window._currentMidiTracks && window._currentMidiTracks.length > 0;
+            opt.disabled = !hasMidi;
+            if (!hasMidi && paletteMode.value === 'midi') {
+                paletteMode.value = 'list';
+                paletteMode.dispatchEvent(new Event('change'));
+            }
+            // Also disable timelineSource MIDI option
+            const tsOpt = document.querySelector('#timelineSource option[value="midi"]');
+            if (tsOpt) tsOpt.disabled = !hasMidi;
+        }
+        window._updateMidiOptionState = updateMidiOptionState;
+        updateMidiOptionState();
 
         function bindPaletteRange(minId, maxId, minKey, maxKey, absMin, absMax) {
             const minSlider = document.getElementById(minId);
@@ -660,12 +691,30 @@
         }
         bindPaletteRange('hueMin', 'hueMax', 'hueMin', 'hueMax', 0, 360);
         bindPaletteRange('satMin', 'satMax', 'satMin', 'satMax', 0, 100);
-        bindPaletteRange('lightMin', 'lightMax', 'lightMin', 'lightMax', 0, 100);
 
         if (paletteColorInput) {
             paletteColorInput.addEventListener('change', () => {
                 window._paletteParams.colors = parseColorSet(paletteColorInput.value);
             });
+        }
+
+        window._tintIntensity = 100;
+        const tiSlider = document.getElementById('tintIntensity');
+        const tiVal = document.getElementById('tintIntensityVal');
+        if (tiSlider && tiVal) {
+            tiSlider.addEventListener('input', () => {
+                window._tintIntensity = parseInt(tiSlider.value);
+                tiVal.value = window._tintIntensity;
+            });
+            tiVal.addEventListener('change', () => {
+                let v = parseInt(tiVal.value);
+                if (isNaN(v)) v = 100;
+                v = Math.min(100, Math.max(0, v));
+                tiSlider.value = v;
+                window._tintIntensity = v;
+                tiVal.value = v;
+            });
+            window._tintIntensity = parseInt(tiSlider.value);
         }
 
         if (window._updateCoordDisplay) window._updateCoordDisplay();
@@ -709,6 +758,7 @@
             const target = h4s[idx];
             if (target && target.getBoundingClientRect().height > 0) {
                 target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                setTimeout(() => updateSvgBorderFromActiveTab(), 150);
             }
         });
 
@@ -724,6 +774,7 @@
                     if (h4.getBoundingClientRect().height > 0 && h4.getBoundingClientRect().top < threshold) activeIdx = i;
                 });
                 tabs.forEach((tab, i) => tab.classList.toggle('active', i === activeIdx));
+                updateSvgBorderFromActiveTab();
             }
             contentEl.addEventListener('scroll', onScroll);
             return onScroll;
@@ -733,8 +784,8 @@
             fusedNav.querySelectorAll('.fn-group').forEach(g => { g.style.display = 'none'; });
             groupEl.style.display = '';
 
+            fusedNav.querySelectorAll('.fn-tab').forEach(t => t.classList.remove('active'));
             const tabs = groupEl.querySelectorAll('.fn-tab');
-            tabs.forEach(t => t.classList.remove('active'));
             if (tabs.length) tabs[0].classList.add('active');
 
             // 滚动到顶部，保留模式切换区可见
@@ -744,6 +795,7 @@
                 fusedNav.style.top = (panel.getBoundingClientRect().top + 80) + 'px';
                 positionFusedNav();
                 contentEl.dispatchEvent(new Event('scroll'));
+                updateSvgBorderFromActiveTab();
             }, 50);
         }
 
@@ -755,7 +807,103 @@
         if (designGroup && panelContent) activateNavGroup(designGroup, panelContent);
         else if (fileGroup && panelFile) { fileGroup.style.display = ''; }
 
-        const ro = new ResizeObserver(() => positionFusedNav());
+        // ---- SVG panel border ----
+        const panelBorderSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        panelBorderSvg.setAttribute('class', 'panel-border-svg');
+        panel.prepend(panelBorderSvg);
+
+        let _lastSvgKey = null;
+
+        function updateSvgBorder(opts) {
+            const w = panel.clientWidth, h = panel.clientHeight;
+            if (!w || !h) return;
+            const R = 12;
+
+            const lgFrom = opts?.leftGapFrom ?? 0;
+            const lgTo   = opts?.leftGapTo   ?? 0;
+            const tgFrom = opts?.topGapFrom  ?? w;
+            const tgTo   = opts?.topGapTo    ?? w;
+
+            const key = `2|${lgFrom}|${lgTo}|${tgFrom}|${tgTo}|${w}|${h}`;
+            if (key === _lastSvgKey) return;
+            _lastSvgKey = key;
+
+            const borderStyle = 'fill="none" stroke="rgba(102,204,255,0.50)" stroke-width="2"';
+
+            let topPaths = [];
+            if (tgFrom > R) topPaths.push(`M ${R},0 L ${tgFrom},0`);
+            if (tgTo < w - R) topPaths.push(`M ${tgTo},0 L ${w-R},0`);
+            if (!topPaths.length) topPaths.push(`M ${R},0 L ${w-R},0`);
+
+            let leftPaths = [];
+            if (lgTo < h - R) leftPaths.push(`M 0,${h-R} L 0,${lgTo}`);
+            if (lgFrom > R) leftPaths.push(`M 0,${lgFrom} L 0,${R}`);
+            if (!leftPaths.length) leftPaths.push(`M 0,${h-R} L 0,${R}`);
+
+            panelBorderSvg.innerHTML = `
+                ${topPaths.map(d => `<path d="${d}" ${borderStyle} />`).join('')}
+                <path d="M 0,${R} A ${R},${R} 0 0,1 ${R},0" ${borderStyle} />
+                <path d="M ${w-R},0 A ${R},${R} 0 0,1 ${w},${R}" ${borderStyle} />
+                <path d="M ${w},${R} L ${w},${h-R}" ${borderStyle} />
+                <path d="M ${w},${h-R} A ${R},${R} 0 0,1 ${w-R},${h}" ${borderStyle} />
+                <path d="M ${w-R},${h} L ${R},${h}" ${borderStyle} />
+                <path d="M ${R},${h} A ${R},${R} 0 0,1 0,${h-R}" ${borderStyle} />
+                ${leftPaths.map(d => `<path d="${d}" ${borderStyle} />`).join('')}
+            `;
+
+            if (handle) {
+                const hSvg = handle.querySelector('.handle-svg');
+                if (hSvg) {
+                    hSvg.textContent = '';
+                    const topH = Math.max(0, lgFrom);
+                    if (topH > 0) {
+                        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        r.setAttribute('x', '0'); r.setAttribute('y', '0');
+                        r.setAttribute('width', '100%'); r.setAttribute('height', String(topH));
+                        hSvg.appendChild(r);
+                    }
+                    const botH = Math.max(0, h - lgTo);
+                    if (botH > 0) {
+                        const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                        r.setAttribute('x', '0'); r.setAttribute('y', String(lgTo));
+                        r.setAttribute('width', '100%'); r.setAttribute('height', String(botH));
+                        hSvg.appendChild(r);
+                    }
+                }
+            }
+        }
+
+        function updateSvgBorderFromActiveTab() {
+            const activePt = document.querySelector('.panel-tab.active');
+            const pr = panel.getBoundingClientRect();
+            let leftGapFrom = 0, leftGapTo = 0;
+            let topGapFrom, topGapTo;
+            if (activePt) {
+                const tr = activePt.getBoundingClientRect();
+                topGapFrom = Math.max(0, tr.left - pr.left);
+                topGapTo   = Math.min(panel.clientWidth, tr.right - pr.left);
+            }
+
+            let activeFn = fusedNav.querySelector('.fn-tab.active');
+            if (!activeFn) {
+                const firstTab = fusedNav.querySelector('.fn-tab');
+                if (firstTab) activeFn = firstTab;
+            }
+            if (activeFn) {
+                const tr = activeFn.getBoundingClientRect();
+                leftGapFrom = Math.max(0, tr.top - pr.top);
+                leftGapTo   = Math.min(panel.clientHeight, tr.bottom - pr.top);
+            }
+
+            updateSvgBorder({ leftGapFrom, leftGapTo, topGapFrom, topGapTo });
+        }
+
+        updateSvgBorderFromActiveTab();
+
+        const ro = new ResizeObserver(() => {
+            positionFusedNav();
+            updateSvgBorderFromActiveTab();
+        });
         ro.observe(panel);
         window._updateFusedNav = positionFusedNav;
 

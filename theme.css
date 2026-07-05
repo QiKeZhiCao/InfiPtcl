@@ -17,9 +17,8 @@ body {
 }
 
 .toolbar {
-    background: rgba(18, 20, 28, 0.78);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     font-size: 13px;
     font-weight: 500;
     box-shadow: 0 6px 14px rgba(0,0,0,0.5);
@@ -55,7 +54,7 @@ input[type="text"],
     color: #99ddff;
     font-family: inherit;
     font-size: 12px;
-    text-align: right;
+    text-align: center;
     font-weight: 400;
 }
 
@@ -98,21 +97,24 @@ canvas {
 
 /* ========== 控制面板细节 ========== */
 .control-panel {
-    background: rgba(12, 14, 24, 0.80);
-    -webkit-backdrop-filter: blur(16px);
-    backdrop-filter: blur(16px);
-    border: 1px solid rgba(102,204,255, 0.45);
+    background: rgba(0,0,0,0.01);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
     font-size: 12px;
 }
 
-.resize-handle {
-    background: rgba(102,204,255, 0.3);
-    transition: background 0.2s;
+.handle-svg {
+    display: block;
 }
 
-.resize-handle:hover {
-    background: rgba(102,204,255, 0.8);
+.handle-svg rect {
+    fill: rgba(102,204,255, 0.30);
+    transition: fill 0.2s;
+}
+
+.resize-handle:hover .handle-svg rect {
+    fill: rgba(102,204,255, 0.80);
 }
 
 body.resizing {
@@ -410,15 +412,6 @@ textarea {
     scrollbar-color: #66ccff #2a2e3c;
 }
 
-.seq-status {
-    font-size: 11px;
-    background: #00000066;
-    padding: 4px 8px;
-    border-radius: 8px;
-    text-align: center;
-    margin-top: 6px;
-}
-
 /* ===== 开关 ===== */
 .switch {
     position: relative;
@@ -510,7 +503,16 @@ select option {
 }
 
 /* 下拉框强化样式 */
-#exportType,
+#exportType {
+    color: white;
+    cursor: pointer;
+    background: #1e1f2c;
+    border: 1px solid #6a6f9a;
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-family: inherit;
+    font-size: 12px;
+}
 .range-value {
     color: white;
     cursor: pointer;
@@ -523,9 +525,8 @@ select option {
 
 /* 播放条细节 */
 .playback-bar-container {
-    background: rgba(0, 0, 0, 0.65);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     font-family: inherit;
 }
 
@@ -631,10 +632,11 @@ select option {
     border-radius: 10px;
     font-size: 13px;
     line-height: 1.5;
-    color: #f0f4ff;
+    color: #fff;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5);
     pointer-events: auto;
-    border: 1px solid rgba(255,255,255,0.08);
+    border: 1px solid rgba(102,204,255,0.3);
+    -webkit-backdrop-filter: blur(8px);
     backdrop-filter: blur(8px);
     transform: translateX(120%);
     opacity: 0;
