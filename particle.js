@@ -591,7 +591,7 @@
                 updateCoordDisplay();
             }
         };
-        canvas.addEventListener('mousemove', updateFromMouse);
+        document.addEventListener('mousemove', updateFromMouse);
         canvas.addEventListener('click', setFixed);
         canvas.addEventListener('touchmove', (e) => { e.preventDefault(); updateFromMouse(e); }, { passive: false });
         canvas.addEventListener('touchstart', (e) => { e.preventDefault(); updateFromMouse(e); setFixed(e); }, { passive: false });
