@@ -52,7 +52,8 @@
                 },
                 animation: {
                     mode: window._particleAnimMode != null ? window._particleAnimMode : 0,
-                    fps: window._particleAnimFps || 10
+                    fps: window._particleAnimFps || 10,
+                    multiTex: !!window._particleMultiTex
                 },
                 sequence: {
                     continuous: window._isContinuousMode !== false,
@@ -65,7 +66,19 @@
                 clearBeforeRender: document.getElementById('clearBeforeRender')?.checked ?? false,
                 palette: window._paletteParams ? { ...window._paletteParams, tintIntensity: window._tintIntensity ?? 100, colors: [...(window._paletteParams.colors || [])] } : { mode: 'list', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, colors: [], tintIntensity: 100 },
                 pitchColorMap: window._pitchColorMap ? { ...window._pitchColorMap } : {},
-                timelineSource: document.getElementById('timelineSource')?.value || 'manual'
+                timelineSource: document.getElementById('timelineSource')?.value || 'manual',
+                canvasWidth: parseInt(document.getElementById('canvasWidth')?.value) || 1920,
+                canvasHeight: parseInt(document.getElementById('canvasHeight')?.value) || 1080,
+                resolutionScale: parseFloat(document.getElementById('resolutionScale')?.value) || 1,
+                webpQuality: parseFloat(document.getElementById('webpQuality')?.value) || 0.92,
+                exportFps: parseFloat(document.getElementById('exportFps')?.value) || 30,
+                exportDuration: parseFloat(document.getElementById('exportDuration')?.value) || 30,
+                exportFormat: document.getElementById('exportFormat')?.value || 'sequence',
+                exportMethod: document.getElementById('exportMethod')?.value || 'folder',
+                autoFit: document.getElementById('canvasSizeAutoBtn')?.classList.contains('active') ?? true,
+                viewZoom: window._viewZoom || 1,
+                viewPanX: window._viewPanX || 0,
+                viewPanY: window._viewPanY || 0
             };
         }
 
@@ -169,7 +182,9 @@
                 const fs2 = document.getElementById('fontStrike');
                 if (fs2) fs2.checked = !!styles.strike;
                 const fls = document.getElementById('fontLetterSpacing');
-                if (fls) fls.value = styles.letterSpacing ?? 0;
+                if (fls) fls.value = Math.min(100, Math.max(0, styles.letterSpacing ?? 0));
+                const flr = document.getElementById('fontLetterSpacingRange');
+                if (flr) flr.value = fls ? fls.value : 0;
                 const fws = document.getElementById('fontWeightSelect');
                 if (fws) fws.value = styles.weight || 'normal';
                 const am = document.getElementById('appearanceMode');
@@ -184,6 +199,9 @@
             if (state.animation) {
                 window._particleAnimMode = state.animation.mode;
                 window._particleAnimFps = state.animation.fps;
+                if (state.animation.multiTex !== undefined && window._setMultiTex) {
+                    window._setMultiTex(state.animation.multiTex);
+                }
                 const ams = document.getElementById('animModeSelect');
                 if (ams) ams.value = state.animation.mode;
                 const afs = document.getElementById('animFps');
@@ -267,6 +285,64 @@
                 if (tiS) tiS.value = window._tintIntensity;
                 if (tiV) tiV.value = window._tintIntensity;
             }
+
+            // Auto fit & viewport state (must set before resizeCanvas)
+            const autoBtn = document.getElementById('canvasSizeAutoBtn');
+            if (state.autoFit === false) {
+                if (window._setAutoFitFlag) window._setAutoFitFlag(false);
+                if (autoBtn) autoBtn.classList.remove('active');
+            } else {
+                if (window._setAutoFitFlag) window._setAutoFitFlag(true);
+                if (autoBtn) autoBtn.classList.add('active');
+                window._viewZoom = 1;
+                window._viewPanX = 0;
+                window._viewPanY = 0;
+            }
+
+            // Canvas size & resolution scale
+            const cw = document.getElementById('canvasWidth');
+            const ch = document.getElementById('canvasHeight');
+            if (cw && state.canvasWidth) cw.value = state.canvasWidth;
+            if (ch && state.canvasHeight) ch.value = state.canvasHeight;
+            if (window._resizeCanvas) window._resizeCanvas();
+            const rs = document.getElementById('resolutionScale');
+            const rsv = document.getElementById('resolutionScaleVal');
+            if (rs && state.resolutionScale) { rs.value = state.resolutionScale; if (rsv) rsv.value = state.resolutionScale; }
+            const wq = document.getElementById('webpQuality');
+            const wqv = document.getElementById('webpQualityVal');
+            if (wq && state.webpQuality) { wq.value = state.webpQuality; if (wqv) wqv.value = state.webpQuality; }
+            const efps = document.getElementById('exportFps');
+            const efpsv = document.getElementById('exportFpsVal');
+            if (efps && state.exportFps) { efps.value = state.exportFps; if (efpsv) efpsv.value = state.exportFps; }
+            const edur = document.getElementById('exportDuration');
+            const edurv = document.getElementById('exportDurationVal');
+            if (edur && state.exportDuration) { edur.value = state.exportDuration; if (edurv) edurv.value = state.exportDuration; }
+            const ef = document.getElementById('exportFormat');
+            if (ef && state.exportFormat) ef.value = state.exportFormat;
+            const em = document.getElementById('exportMethod');
+            if (em && state.exportMethod) em.value = state.exportMethod;
+            if (window._syncExportMethodVisibility) window._syncExportMethodVisibility();
+
+            // Viewport state (only restore when not in autoFit)
+            if (state.autoFit === false) {
+                window._viewZoom = state.viewZoom || 1;
+                window._viewPanX = state.viewPanX || 0;
+                window._viewPanY = state.viewPanY || 0;
+                if (window._applyViewTransform) window._applyViewTransform();
+            }
+
+            // Update UI: input disabled state & pan button disabled
+            const panBtn = document.getElementById('panModeBtn');
+            if (state.autoFit) {
+                if (cw) cw.disabled = true;
+                if (ch) ch.disabled = true;
+                if (panBtn) panBtn.disabled = true;
+            } else {
+                if (cw) cw.disabled = false;
+                if (ch) ch.disabled = false;
+                if (panBtn) panBtn.disabled = false;
+            }
+            if (window.StepperSelect) window.StepperSelect.rebuildAll();
         }
 
         // ====== Import ======
@@ -348,9 +424,35 @@
                         }
                         window._particleTextures = imgs;
                         window._textureFileNames = names;
+                        // 新格式：含 textureUnits 元数据 → 重建纹理单元；旧格式 → 保持扁平、开关关闭
+                        const unitsMeta = state.textureUnits;
+                        if (Array.isArray(unitsMeta) && unitsMeta.length > 0) {
+                            const units = [];
+                            for (const meta of unitsMeta) {
+                                const start = meta.start || 0;
+                                const count = Math.max(1, meta.count || 1);
+                                const frames = [];
+                                const frameNames = [];
+                                for (let i = 0; i < count && (start + i) < imgs.length; i++) {
+                                    frames.push(imgs[start + i]);
+                                    frameNames.push(names[start + i]);
+                                }
+                                if (frames.length > 0) {
+                                    const anim = meta.isAnim ? { mode: (meta.mode != null ? meta.mode : 2), fps: (meta.fps > 0 ? meta.fps : 10) } : null;
+                                    units.push({ name: meta.name || `纹理${units.length+1}`, isAnim: !!meta.isAnim, fps: meta.fps || 0, anim, frames, frameNames });
+                                }
+                            }
+                            if (units.length > 0) {
+                                window._textureUnits = units;
+                                if (window._rebuildFlatFromUnits) window._rebuildFlatFromUnits();
+                                if (state.animation && state.animation.multiTex !== undefined && window._setMultiTex) {
+                                    window._setMultiTex(state.animation.multiTex);
+                                }
+                            }
+                        }
                         if (window._updateTextureOrderList) window._updateTextureOrderList();
                         const tf = document.getElementById('textureFileName');
-                        if (tf) tf.innerText = names.join(', ');
+                        if (tf) tf.innerText = (window._displayTextureNames ? window._displayTextureNames() : names.join(', '));
                     }
 
                     // Restore fonts
@@ -388,7 +490,7 @@
                         if (window._setMidiTracks) window._setMidiTracks(tracks);
                         const mts = document.getElementById('midiTrackSelect');
                         if (mts) {
-                            mts.innerHTML = '<option value="all">所有轨道合并</option>';
+                            mts.innerHTML = '<option value="all">&lt; 所有轨道合并 &gt;</option>';
                             tracks.forEach((t, i) => {
                                 const opt = document.createElement('option');
                                 opt.value = i;
@@ -424,6 +526,8 @@
                         : 'ZIP压缩包';
                     document.getElementById('exportType').value = ext;
 
+                    window.StepperSelect?.rebuildAll();
+
                     Toast.success('工程导入成功');
                     console.log('[IE] Import complete');
                 } catch (err) {
@@ -448,6 +552,18 @@
                     const blob = await textureToBlob(texs[i]);
                     textureBlobs.push({ name: texNames[i] || `texture_${i}.png`, blob });
                 }
+                // 纹理单元元数据（新格式分组信息）
+                let textureUnitsMeta = null;
+                const units = window._textureUnits;
+                if (Array.isArray(units) && units.length > 0 && texs.length === (window._textureFileNames || []).length) {
+                    let cursor = 0;
+                    textureUnitsMeta = units.map(u => {
+                        const anim = u.anim || {};
+                        const meta = { name: u.name || `纹理${cursor + 1}`, isAnim: !!u.isAnim, fps: (u.anim && u.anim.fps > 0) ? u.anim.fps : (u.fps || 0), mode: u.isAnim ? ((anim.mode != null ? anim.mode : 2)) : undefined, start: cursor, count: u.frames.length };
+                        cursor += u.frames.length;
+                        return meta;
+                    });
+                }
 
                 // Fonts
                 const fontEntries = Object.entries(window._importedFonts || {});
@@ -467,6 +583,7 @@
                     const exportData = {
                         ...state,
                         textures: texArr,
+                        textureUnits: textureUnitsMeta,
                         fonts: fontArr,
                         midi: midiTracks.length > 0 ? {
                             fileName: midiFileName,
@@ -485,8 +602,10 @@
                     if (typeof JSZip === 'undefined') { Toast.error('JSZip 库未加载'); return; }
                     const zip = new JSZip();
                     state.textureNames = (window._textureFileNames || []).slice();
+                    state.textureUnits = textureUnitsMeta;
                     zip.file('config.json', JSON.stringify(state, null, 2));
                     delete state.textureNames;
+                    delete state.textureUnits;
                     const texFolder = zip.folder('textures');
                     for (const t of textureBlobs) texFolder.file(t.name, t.blob);
                     const fontFolder = zip.folder('fonts');
@@ -499,7 +618,7 @@
                             tracks: midiTracks.map(t => ({ name: t.name, noteCount: t.noteCount, timestamps: t.timestamps, notes: t.notes }))
                         }, null, 2));
                     }
-                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 9 } });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url; a.download = projectName + '.zip';

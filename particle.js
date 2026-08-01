@@ -2,10 +2,16 @@
 (function(){
     const canvas = document.getElementById('particleCanvas');
     const ctx = canvas.getContext('2d');
+    let renderCanvas = canvas;
+    let renderCtx = ctx;
+    window._setExportTarget = function(c) {
+        renderCanvas = c || canvas;
+        renderCtx = renderCanvas.getContext('2d');
+    };
     const _tintCanvas = document.createElement('canvas');
     const _tintCtx = _tintCanvas.getContext('2d');
     const _tintCanvas2 = document.createElement('canvas');
-    const _tintCtx2 = _tintCanvas2.getContext('2d');
+    const _tintCtx2 = _tintCanvas2.getContext('2d', { willReadFrequently: true });
     let particles = [];
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
@@ -47,6 +53,7 @@
 
     let textureImages = [];
     window._particleTextures = [];
+    window._particleMultiTex = false;
 
     // 累加器变量（用于均匀发射）
     let emitAccumulator = 0;
@@ -65,6 +72,58 @@
     window._particleSimTime = 0;
     window._paletteParams = { mode: 'list', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, colors: [] };
 
+    window._viewZoom = 1;
+    window._viewPanX = 0;
+    window._viewPanY = 0;
+    let _autoFit = true;
+    window._getAutoFit = function() { return _autoFit; };
+    window._setAutoFitFlag = function(v) { _autoFit = v; };
+    let _panMode = false;
+    let _panLastX = 0, _panLastY = 0;
+    let _panInitialized = false;
+    let _panMouseDown = false;
+    let _isPinching = false;
+    let _pinchData = {};
+
+    // DOM 十字准星覆盖层：发射中心在画布外也能显示
+    const emitterCrosshair = document.createElement('div');
+    emitterCrosshair.style.cssText = 'position: fixed; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; display: none;';
+    emitterCrosshair.innerHTML = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">'
+        + '<line x1="18" y1="5" x2="18" y2="31" stroke="#66ccff" stroke-width="2.5"/>'
+        + '<line x1="5" y1="18" x2="31" y2="18" stroke="#66ccff" stroke-width="2.5"/>'
+        + '<circle cx="18" cy="18" r="8" fill="none" stroke="#66ccff" stroke-width="2.5"/>'
+        + '<circle cx="18" cy="18" r="3" fill="#ffffff"/>'
+        + '</svg>';
+    const emitterRadiusCircle = document.createElement('div');
+    emitterRadiusCircle.style.cssText = 'position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border:2px dashed #66ccff;border-radius:50%;';
+    emitterCrosshair.appendChild(emitterRadiusCircle);
+    document.body.appendChild(emitterCrosshair);
+    document.body.style.cursor = 'crosshair';
+
+    function updateEmitterCrosshair() {
+        if (window._exporting) {
+            emitterCrosshair.style.display = 'none';
+            return;
+        }
+        const rect = canvas.getBoundingClientRect();
+        const z = window._viewZoom || 1;
+        const x = rect.left + emitterPos.x * z;
+        const y = rect.top + emitterPos.y * z;
+        emitterCrosshair.style.display = 'block';
+        emitterCrosshair.style.left = x + 'px';
+        emitterCrosshair.style.top = y + 'px';
+        const emitR = (window._particleParams && window._particleParams.emitRadius) || 0;
+        const R = emitR * z;
+        if (R > 3) {
+            emitterRadiusCircle.style.width = (R * 2) + 'px';
+            emitterRadiusCircle.style.height = (R * 2) + 'px';
+            emitterRadiusCircle.style.display = 'block';
+        } else {
+            emitterRadiusCircle.style.display = 'none';
+        }
+    }
+    window._syncEmitterCrosshair = updateEmitterCrosshair;
+
     window._resetDefaultTexture = function() {
         createDefaultTexture();
     };
@@ -78,9 +137,37 @@
     }
     window._updateCoordDisplay = updateCoordDisplay;
 
+    function updateCanvasSizeDisplay() {
+        const cw = document.getElementById('canvasWidth');
+        const ch = document.getElementById('canvasHeight');
+        if (cw && ch) {
+            cw.value = canvas.width;
+            ch.value = canvas.height;
+        }
+    }
+
+    function applyViewTransform() {
+        const z = window._viewZoom || 1;
+        const px = window._viewPanX || 0;
+        const py = window._viewPanY || 0;
+        canvas.style.width = canvas.width + 'px';
+        canvas.style.height = canvas.height + 'px';
+        canvas.style.transformOrigin = '0 0';
+        canvas.style.transform = `translate(${px}px, ${py}px) scale(${z})`;
+        canvas.style.setProperty('--gb', (12 / z) + 'px');
+        canvas.style.setProperty('--gs', (2 / z) + 'px');
+    }
+    window._applyViewTransform = applyViewTransform;
+
     window._setEmitterPos = function(x, y) {
         emitterPos.x = x;
         emitterPos.y = y;
+        window._particleEmitterPos = emitterPos;
+        updateCoordDisplay();
+    };
+    window._scaleEmitterPos = function(s) {
+        emitterPos.x = Math.round(emitterPos.x * s);
+        emitterPos.y = Math.round(emitterPos.y * s);
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
     };
@@ -203,6 +290,7 @@
         img.onload = () => {
             textureImages = [img];
             window._particleTextures = textureImages;
+            window._textureUnits = [{ name: '默认纹理', isAnim: false, fps: 0, frames: [img], frameNames: ['默认纹理'] }];
             const fileNameSpan = document.getElementById('textureFileName');
             if (fileNameSpan) fileNameSpan.innerText = '默认纹理（1张）';
             if (window._updateTextureOrderList) window._updateTextureOrderList();
@@ -227,6 +315,7 @@
     window._restoreParticleState = function(state) {
         particles = state.particles;
         emitterPos = state.emitterPos;
+        window._particleEmitterPos = emitterPos;
         followMouse = state.followMouse;
         emitActive = state.emitActive;
         Object.assign(params, state.params);
@@ -278,12 +367,32 @@
         let textureIndex = 0;
         let birthTime = 0;
         const texs = window._particleTextures || [];
+        let unitIndex = -1;
         
         if (isText) {
             const lines = (window._particleTextContent || '粒子').split('\n').filter(line => line.trim() !== '');
             if (lines.length === 0) lines.push(' ');
             const randomLine = lines[Math.floor(Math.random() * lines.length)];
             text = randomLine || ' ';
+        } else if (window._particleMultiTex && (window._textureUnits || []).length > 0) {
+            const units = window._textureUnits || [];
+            unitIndex = Math.floor(Math.random() * units.length);
+            const unit = units[unitIndex];
+            if (unit.frames.length > 0) {
+                const uMode = (unit.anim && unit.anim.mode != null) ? unit.anim.mode : 2;
+                if (unit.isAnim && uMode !== 0) {
+                    if (uMode === 1) {
+                        textureIndex = Math.floor(Math.random() * unit.frames.length);
+                    } else {
+                        textureIndex = 0;
+                    }
+                    texture = unit.frames[textureIndex];
+                    birthTime = window._particleSimTime;
+                } else {
+                    textureIndex = Math.floor(Math.random() * unit.frames.length);
+                    texture = unit.frames[textureIndex];
+                }
+            }
         } else {
             if (texs.length > 0) {
                 const idx = Math.floor(Math.random() * texs.length);
@@ -325,12 +434,24 @@
         let tintedFrames = null;
         if (texs.length > 0 && !isText && hue !== undefined) {
             try {
-                tintedFrames = texs.map(t => {
-                    if (t && t.complete) {
-                            try { return tintTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
+                if (window._particleMultiTex && unitIndex >= 0 && (window._textureUnits || []).length > 0) {
+                    const unit = (window._textureUnits || [])[unitIndex];
+                    if (unit && unit.frames.length > 0) {
+                        tintedFrames = unit.frames.map(t => {
+                            if (t && t.complete) {
+                                try { return tintTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
+                            }
+                            return null;
+                        });
                     }
-                    return null;
-                });
+                } else {
+                    tintedFrames = texs.map(t => {
+                        if (t && t.complete) {
+                                try { return tintTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
+                        }
+                        return null;
+                    });
+                }
             } catch(e) {}
         }
 
@@ -349,6 +470,7 @@
             font: font,
             styles: styles,
             textureIndex: textureIndex,
+            unitIndex: unitIndex,
             birthTime: birthTime,
             hue, sat, light,
             tintedFrames
@@ -419,21 +541,16 @@
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
-            const outOffset = 20;
-            if (p.x + p.size < -outOffset || p.x - p.size > canvas.width + outOffset ||
-                p.y + p.size < -outOffset || p.y - p.size > canvas.height + outOffset) {
-                particles.splice(i,1);
-            }
         }
         updateParticleCount();
     }
     
     function render() {
         for (let p of particles) {
-            ctx.save();
-            ctx.globalAlpha = p.alpha;
-            ctx.translate(p.x, p.y);
-            ctx.rotate(p.rot);
+            renderCtx.save();
+            renderCtx.globalAlpha = p.alpha;
+            renderCtx.translate(p.x, p.y);
+            renderCtx.rotate(p.rot);
             const half = p.size / 2;
             
             if (p.isText) {
@@ -443,10 +560,10 @@
                 const styles = p.styles || {};
                 let fontWeight = styles.weight || 'normal';
                 let fontStyle = styles.italic ? 'italic' : 'normal';
-                ctx.font = fontStyle + ' ' + fontWeight + ' ' + fontSize + 'px "' + fontFamily + '"';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,255,255,${p.alpha})`;
+                renderCtx.font = fontStyle + ' ' + fontWeight + ' ' + fontSize + 'px "' + fontFamily + '"';
+                renderCtx.textAlign = 'center';
+                renderCtx.textBaseline = 'middle';
+                renderCtx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(255,255,255,${p.alpha})`;
                 const text = p.text;
                 const letterSpacing = styles.letterSpacing || 0;
                 let lineLeft, lineRight;
@@ -454,49 +571,68 @@
                     const charWidths = [];
                     let totalWidth = 0;
                     for (let i = 0; i < text.length; i++) {
-                        const metrics = ctx.measureText(text[i]);
+                        const metrics = renderCtx.measureText(text[i]);
                         charWidths.push(metrics.width);
                         totalWidth += metrics.width + letterSpacing;
                     }
                     const startX = -totalWidth / 2 + (letterSpacing / 2);
                     let x = startX;
                     for (let i = 0; i < text.length; i++) {
-                        ctx.fillText(text[i], x, 0);
+                        renderCtx.fillText(text[i], x, 0);
                         x += charWidths[i] + letterSpacing;
                     }
                     lineLeft = startX - charWidths[0] / 2;
                     lineRight = startX + totalWidth - letterSpacing - charWidths[text.length - 1] / 2;
                 } else {
-                    ctx.fillText(text, 0, 0);
-                    const metrics = ctx.measureText(text);
+                    renderCtx.fillText(text, 0, 0);
+                    const metrics = renderCtx.measureText(text);
                     lineLeft = -metrics.width / 2;
                     lineRight = metrics.width / 2;
                 }
                 if (styles.underline || styles.strike) {
                     let lineWidth = Math.max(1, fontSize * 0.08);
                     if (fontWeight === 'bold' || fontWeight === '700') lineWidth *= 1.2;
-                    ctx.strokeStyle = `rgba(255,255,255,${p.alpha})`;
-                    ctx.lineWidth = lineWidth;
+                    renderCtx.strokeStyle = `rgba(255,255,255,${p.alpha})`;
+                    renderCtx.lineWidth = lineWidth;
                     if (styles.underline) {
                         const yPos = fontSize * 0.45;
-                        ctx.beginPath();
-                        ctx.moveTo(lineLeft, yPos);
-                        ctx.lineTo(lineRight, yPos);
-                        ctx.stroke();
+                        renderCtx.beginPath();
+                        renderCtx.moveTo(lineLeft, yPos);
+                        renderCtx.lineTo(lineRight, yPos);
+                        renderCtx.stroke();
                     }
                     if (styles.strike) {
                         const yPos = 0;
-                        ctx.beginPath();
-                        ctx.moveTo(lineLeft, yPos);
-                        ctx.lineTo(lineRight, yPos);
-                        ctx.stroke();
+                        renderCtx.beginPath();
+                        renderCtx.moveTo(lineLeft, yPos);
+                        renderCtx.lineTo(lineRight, yPos);
+                        renderCtx.stroke();
                     }
                 }
             } else {
                 const texs = window._particleTextures || [];
+                const units = window._textureUnits || [];
+                const multiTex = window._particleMultiTex && p.unitIndex >= 0 && p.unitIndex < units.length;
                 let useTex = p.texture;
                 let curFrame = 0;
-                if (texs.length > 1 && window._particleAnimMode !== 0 && p.textureIndex !== undefined) {
+                if (multiTex) {
+                    const unit = units[p.unitIndex];
+                    if (unit && unit.frames.length > 0) {
+                        const uMode = (unit.anim && unit.anim.mode != null) ? unit.anim.mode : 2;
+                        const start = (p.textureIndex !== undefined ? p.textureIndex : 0) % unit.frames.length;
+                        if (unit.isAnim && uMode !== 0) {
+                            const fps = (unit.anim && unit.anim.fps > 0 ? unit.anim.fps : (unit.fps > 0 ? unit.fps : (window._particleAnimFps || 10)));
+                            const elapsed = window._particleSimTime - (p.birthTime || 0);
+                            const totalFrames = Math.floor(elapsed * fps);
+                            curFrame = (start + totalFrames) % unit.frames.length;
+                            if (curFrame < 0) curFrame += unit.frames.length;
+                            useTex = unit.frames[curFrame];
+                        } else {
+                            curFrame = start;
+                            useTex = unit.frames[start];
+                        }
+                    }
+                } else if (texs.length > 1 && window._particleAnimMode !== 0 && p.textureIndex !== undefined) {
                     const fps = window._particleAnimFps || 10;
                     const elapsed = window._particleSimTime - (p.birthTime || 0);
                     const totalFrames = Math.floor(elapsed * fps);
@@ -506,13 +642,13 @@
                 }
                 let tintedTex = null;
                 if (p.tintedFrames && p.hue !== undefined) {
-                    const idx = (texs.length > 1 && window._particleAnimMode !== 0 && p.textureIndex !== undefined)
-                        ? curFrame : (p.textureIndex !== undefined ? p.textureIndex : 0);
+                    const idx = multiTex ? curFrame : ((texs.length > 1 && window._particleAnimMode !== 0 && p.textureIndex !== undefined)
+                        ? curFrame : (p.textureIndex !== undefined ? p.textureIndex : 0));
                     tintedTex = p.tintedFrames[idx];
                 }
                 if (useTex && useTex.complete) {
                     if (tintedTex) {
-                        ctx.drawImage(tintedTex, -half, -half);
+                        renderCtx.drawImage(tintedTex, -half, -half);
                     } else if (p.hue !== undefined) {
                         const ts = Math.ceil(p.size);
                         if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
@@ -524,21 +660,21 @@
                         _tintCtx.globalCompositeOperation = 'source-over';
                         const intensity = (window._tintIntensity ?? 100) / 100;
                         if (intensity <= 0) {
-                            ctx.drawImage(useTex, -half, -half, p.size, p.size);
+                            renderCtx.drawImage(useTex, -half, -half, p.size, p.size);
                         } else if (intensity >= 1) {
-                            ctx.drawImage(_tintCanvas, -half, -half);
+                            renderCtx.drawImage(_tintCanvas, -half, -half);
                         } else {
-                            ctx.drawImage(useTex, -half, -half, p.size, p.size);
-                            ctx.globalAlpha = p.alpha * intensity;
-                            ctx.drawImage(_tintCanvas, -half, -half);
-                            ctx.globalAlpha = p.alpha;
+                            renderCtx.drawImage(useTex, -half, -half, p.size, p.size);
+                            renderCtx.globalAlpha = p.alpha * intensity;
+                            renderCtx.drawImage(_tintCanvas, -half, -half);
+                            renderCtx.globalAlpha = p.alpha;
                         }
                     } else {
-                        ctx.drawImage(useTex, -half, -half, p.size, p.size);
+                        renderCtx.drawImage(useTex, -half, -half, p.size, p.size);
                     }
                 } else if (texs.length > 0 && texs[0] && texs[0].complete) {
                     if (tintedTex) {
-                        ctx.drawImage(tintedTex, -half, -half);
+                        renderCtx.drawImage(tintedTex, -half, -half);
                     } else if (p.hue !== undefined) {
                         const ts = Math.ceil(p.size);
                         if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
@@ -550,59 +686,38 @@
                         _tintCtx.globalCompositeOperation = 'source-over';
                         const intensity = (window._tintIntensity ?? 100) / 100;
                         if (intensity <= 0) {
-                            ctx.drawImage(texs[0], -half, -half, p.size, p.size);
+                            renderCtx.drawImage(texs[0], -half, -half, p.size, p.size);
                         } else if (intensity >= 1) {
-                            ctx.drawImage(_tintCanvas, -half, -half);
+                            renderCtx.drawImage(_tintCanvas, -half, -half);
                         } else {
-                            ctx.drawImage(texs[0], -half, -half, p.size, p.size);
-                            ctx.globalAlpha = p.alpha * intensity;
-                            ctx.drawImage(_tintCanvas, -half, -half);
-                            ctx.globalAlpha = p.alpha;
+                            renderCtx.drawImage(texs[0], -half, -half, p.size, p.size);
+                            renderCtx.globalAlpha = p.alpha * intensity;
+                            renderCtx.drawImage(_tintCanvas, -half, -half);
+                            renderCtx.globalAlpha = p.alpha;
                         }
                     } else {
-                        ctx.drawImage(texs[0], -half, -half, p.size, p.size);
+                        renderCtx.drawImage(texs[0], -half, -half, p.size, p.size);
                     }
                 } else {
-                    ctx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(102,204,255,${p.alpha})`;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, half, 0, Math.PI*2);
-                    ctx.fill();
+                    renderCtx.fillStyle = p.hue !== undefined ? `hsla(${p.hue}, ${p.sat}%, ${p.light}%, ${p.alpha})` : `rgba(102,204,255,${p.alpha})`;
+                    renderCtx.beginPath();
+                    renderCtx.arc(0, 0, half, 0, Math.PI*2);
+                    renderCtx.fill();
                 }
             }
-            ctx.restore();
+            renderCtx.restore();
         }
     }
     
     function drawEmitter() {
-        if (window._exporting) return;
-        ctx.save();
-        ctx.strokeStyle = '#66ccff';
-        ctx.lineWidth = 2.5;
-        ctx.beginPath();
-        ctx.moveTo(emitterPos.x-14, emitterPos.y);
-        ctx.lineTo(emitterPos.x+14, emitterPos.y);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.moveTo(emitterPos.x, emitterPos.y-14);
-        ctx.lineTo(emitterPos.x, emitterPos.y+14);
-        ctx.stroke();
-        ctx.beginPath();
-        ctx.arc(emitterPos.x, emitterPos.y, 8, 0, Math.PI*2);
-        ctx.stroke();
-        const eg = ctx.createRadialGradient(emitterPos.x, emitterPos.y, 0, emitterPos.x, emitterPos.y, 5);
-        eg.addColorStop(0, 'rgba(255,255,255,1)');
-        eg.addColorStop(1, 'rgba(102,204,255,1)');
-        ctx.fillStyle = eg;
-        ctx.arc(emitterPos.x, emitterPos.y, 5, 0, Math.PI*2);
-        ctx.fill();
-        ctx.restore();
+        updateEmitterCrosshair();
     }
     
     function setBackground() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        renderCtx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
         if (!window._exporting) {
-            ctx.fillStyle = params.backgroundColor;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            renderCtx.fillStyle = params.backgroundColor;
+            renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
         }
     }
     
@@ -630,7 +745,7 @@
     }
     
     window._stepSimulation = function(deltaSec) {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        renderCtx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
         window._particleAnimMode = window._particleAnimMode || 0;
         window._particleAnimFps = window._particleAnimFps || 10;
         window._particleSimTime += deltaSec;
@@ -646,71 +761,248 @@
     requestAnimationFrame(animate);
 
     function resizeCanvas() {
-        const container = canvas.parentElement;
-        canvas.width = container.clientWidth;
-        canvas.height = container.clientHeight;
-        if (!followMouse) {
-            emitterPos.x = Math.min(Math.max(emitterPos.x, 15), canvas.width-15);
-            emitterPos.y = Math.min(Math.max(emitterPos.y, 15), canvas.height-15);
-        } else if (emitterPos.x === 0 && emitterPos.y === 0) {
+        if (_autoFit) {
+            canvas.width = containerWidth();
+            canvas.height = containerHeight();
+        } else {
+            const cw = document.getElementById('canvasWidth');
+            const ch = document.getElementById('canvasHeight');
+            if (cw && ch) {
+                const w = parseInt(cw.value);
+                const h = parseInt(ch.value);
+                canvas.width = (w > 0) ? w : containerWidth();
+                canvas.height = (h > 0) ? h : containerHeight();
+            } else {
+                canvas.width = containerWidth();
+                canvas.height = containerHeight();
+            }
+        }
+        applyViewTransform();
+        if (followMouse && emitterPos.x === 0 && emitterPos.y === 0) {
             emitterPos.x = canvas.width/2;
             emitterPos.y = canvas.height/2;
         }
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
+        updateCanvasSizeDisplay();
+        updateAutoFitInputs();
+    }
+    function containerWidth() { return canvas.parentElement.clientWidth; }
+    function containerHeight() { return canvas.parentElement.clientHeight; }
+    window._resizeCanvas = resizeCanvas;
+    window._setAutoFit = function(enabled) {
+        _autoFit = enabled;
+        if (enabled) {
+            window._viewZoom = 1;
+            window._viewPanX = 0;
+            window._viewPanY = 0;
+            _isPinching = false;
+            _panMouseDown = false;
+            if (_panMode) {
+                _panMode = false;
+                document.getElementById('panModeBtn')?.classList.remove('active');
+                canvas.style.cursor = 'crosshair';
+            }
+            const panBtn = document.getElementById('panModeBtn');
+            if (panBtn) panBtn.disabled = true;
+            resizeCanvas();
+        } else {
+            const panBtn = document.getElementById('panModeBtn');
+            if (panBtn) panBtn.disabled = false;
+        }
+        const cw = document.getElementById('canvasWidth');
+        const ch = document.getElementById('canvasHeight');
+        if (cw) cw.disabled = enabled;
+        if (ch) ch.disabled = enabled;
+    };
+    function updateAutoFitInputs() {
+        const cw = document.getElementById('canvasWidth');
+        const ch = document.getElementById('canvasHeight');
+        if (cw) cw.disabled = _autoFit;
+        if (ch) ch.disabled = _autoFit;
     }
     
+    function getCanvasCoords(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const sx = canvas.width / rect.width;
+        const sy = canvas.height / rect.height;
+        return {
+            x: (clientX - rect.left) * sx,
+            y: (clientY - rect.top) * sy
+        };
+    }
+
     function initEvents() {
+        // ---------- 平移模式 ----------
+        window._setPanMode = function(enabled) {
+            _panMode = enabled;
+            _panMouseDown = false;
+            canvas.style.cursor = enabled ? 'grab' : 'crosshair';
+            document.body.style.cursor = enabled ? 'grab' : 'crosshair';
+        };
+
         const updateFromMouse = (e) => {
-            const rect = canvas.getBoundingClientRect();
-            const sx = canvas.width / rect.width;
-            const sy = canvas.height / rect.height;
-            let cx, cy;
-            if (e.touches) {
-                cx = e.touches[0].clientX;
-                cy = e.touches[0].clientY;
-            } else {
-                cx = e.clientX;
-                cy = e.clientY;
+            if (_panMode && _panMouseDown && !_autoFit) {
+                if (!_panInitialized) {
+                    _panLastX = e.clientX;
+                    _panLastY = e.clientY;
+                    _panInitialized = true;
+                }
+                window._viewPanX += e.clientX - _panLastX;
+                window._viewPanY += e.clientY - _panLastY;
+                _panLastX = e.clientX;
+                _panLastY = e.clientY;
+                applyViewTransform();
+                return;
             }
-            let mx = (cx - rect.left) * sx;
-            let my = (cy - rect.top) * sy;
-            mx = Math.min(Math.max(mx, 0), canvas.width);
-            my = Math.min(Math.max(my, 0), canvas.height);
+            const cx = e.clientX;
+            const cy = e.clientY;
+            const c = getCanvasCoords(cx, cy);
             if (window._particleFollowMouse) {
-                emitterPos.x = mx;
-                emitterPos.y = my;
+                emitterPos.x = c.x;
+                emitterPos.y = c.y;
                 window._particleEmitterPos = emitterPos;
             }
             updateCoordDisplay();
         };
         const setFixed = (e) => {
+            if (_panMode) return;
+            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, input, select, textarea, button')) return;
             if (!window._particleFollowMouse) {
-                const rect = canvas.getBoundingClientRect();
-                const sx = canvas.width / rect.width;
-                const sy = canvas.height / rect.height;
-                let cx, cy;
-                if (e.touches) {
-                    cx = e.touches[0].clientX;
-                    cy = e.touches[0].clientY;
-                } else {
-                    cx = e.clientX;
-                    cy = e.clientY;
-                }
-                let mx = (cx - rect.left) * sx;
-                let my = (cy - rect.top) * sy;
-                mx = Math.min(Math.max(mx, 0), canvas.width);
-                my = Math.min(Math.max(my, 0), canvas.height);
-                emitterPos.x = mx;
-                emitterPos.y = my;
+                const c = getCanvasCoords(e.clientX, e.clientY);
+                emitterPos.x = c.x;
+                emitterPos.y = c.y;
                 window._particleEmitterPos = emitterPos;
                 updateCoordDisplay();
             }
         };
+        document.addEventListener('mousedown', (e) => {
+            if (_panMode && e.button === 0) {
+                if (e.target.closest('.stepper-select, input, select, textarea')) return;
+                e.preventDefault();
+                _panMouseDown = true;
+                _panInitialized = false;
+                canvas.style.cursor = 'grabbing';
+                document.body.style.cursor = 'grabbing';
+            }
+        });
+        document.addEventListener('mouseup', (e) => {
+            if (_panMode && e.button === 0) {
+                _panMouseDown = false;
+                _panInitialized = false;
+                canvas.style.cursor = 'grab';
+                document.body.style.cursor = 'grab';
+            }
+        });
+        document.addEventListener('selectstart', (e) => {
+            if (_panMode) e.preventDefault();
+        });
+
+        // ---------- 滚轮：默认平移，Ctrl = 缩放（全页面有效，排除面板区域） ----------
+        document.addEventListener('wheel', (e) => {
+            if (_autoFit) return;
+            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, input, select, textarea, button')) return;
+            e.preventDefault();
+            if (e.ctrlKey) {
+                const factor = 1 - e.deltaY * 0.005;
+                const oldZ = window._viewZoom;
+                const newZ = Math.max(0.1, Math.min(10, oldZ * factor));
+                if (newZ !== oldZ) {
+                    const rect = canvas.getBoundingClientRect();
+                    const cx = (e.clientX - rect.left) / oldZ;
+                    const cy = (e.clientY - rect.top) / oldZ;
+                    window._viewZoom = newZ;
+                    window._viewPanX += cx * (oldZ - newZ);
+                    window._viewPanY += cy * (oldZ - newZ);
+                }
+            } else {
+                window._viewPanX -= e.deltaX;
+                window._viewPanY -= e.deltaY;
+            }
+            applyViewTransform();
+        }, { passive: false });
+
+        // ---------- 触摸（单指发射点 + 双指缩放/平移） ----------
+        const touchFromEvent = (e, idx) => {
+            const t = e.touches[idx];
+            const c = getCanvasCoords(t.clientX, t.clientY);
+            return c;
+        };
+
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (_autoFit && e.touches.length === 2) return;
+            if (e.touches.length === 2) {
+                const t = e.touches;
+                _pinchData = {
+                    dist: Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY),
+                    zoom: window._viewZoom,
+                    midX: (t[0].clientX + t[1].clientX) / 2,
+                    midY: (t[0].clientY + t[1].clientY) / 2,
+                    panX: window._viewPanX,
+                    panY: window._viewPanY,
+                    rect: canvas.getBoundingClientRect()
+                };
+                _isPinching = true;
+                return;
+            }
+            if (!_isPinching && e.touches.length === 1) {
+                const c = touchFromEvent(e, 0);
+                if (window._particleFollowMouse) {
+                    emitterPos.x = c.x;
+                    emitterPos.y = c.y;
+                    window._particleEmitterPos = emitterPos;
+                } else {
+                    emitterPos.x = c.x;
+                    emitterPos.y = c.y;
+                    window._particleEmitterPos = emitterPos;
+                }
+                updateCoordDisplay();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length === 2 && _isPinching) {
+                const t = e.touches;
+                const dist = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+                const midX = (t[0].clientX + t[1].clientX) / 2;
+                const midY = (t[0].clientY + t[1].clientY) / 2;
+                const ratio = _pinchData.dist > 0 ? dist / _pinchData.dist : 1;
+                const z0 = _pinchData.zoom;
+                const r0 = _pinchData.rect;
+                const newZ = Math.max(0.1, Math.min(10, z0 * ratio));
+                const cx = (_pinchData.midX - r0.left) / z0;
+                const cy = (_pinchData.midY - r0.top) / z0;
+                window._viewZoom = newZ;
+                window._viewPanX = _pinchData.panX + (midX - r0.left) - cx * newZ;
+                window._viewPanY = _pinchData.panY + (midY - r0.top) - cy * newZ;
+                applyViewTransform();
+                return;
+            }
+            if (!_isPinching && e.touches.length === 1) {
+                const c = touchFromEvent(e, 0);
+                if (window._particleFollowMouse) {
+                    emitterPos.x = c.x;
+                    emitterPos.y = c.y;
+                    window._particleEmitterPos = emitterPos;
+                }
+                updateCoordDisplay();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', (e) => {
+            if (e.touches.length < 2) _isPinching = false;
+        }, { passive: false });
+
+        canvas.addEventListener('touchcancel', (e) => {
+            _isPinching = false;
+        }, { passive: false });
+
+        // ---------- 点击设发射点（桌面左键） ----------
+        document.addEventListener('click', setFixed);
+
         document.addEventListener('mousemove', updateFromMouse);
-        canvas.addEventListener('click', setFixed);
-        canvas.addEventListener('touchmove', (e) => { e.preventDefault(); updateFromMouse(e); }, { passive: false });
-        canvas.addEventListener('touchstart', (e) => { e.preventDefault(); updateFromMouse(e); setFixed(e); }, { passive: false });
         window.addEventListener('resize', resizeCanvas);
     }
 })();

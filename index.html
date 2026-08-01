@@ -25,13 +25,18 @@
         <span>发射模式</span>
         <button id="followMouseBtn" class="mode-btn" aria-label="跟随鼠标模式">跟随鼠标</button>
         <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">固定点</button>
-        <button id="centerPointBtn" class="mode-btn" style="display: none;">中心点</button>
+        <button id="centerPointBtn" class="mode-btn" style="display: none;padding:1px 6px;font-size:10px;min-width:auto;">C</button>
         <span class="stat" style="display:inline-flex;align-items:center;gap:3px;padding:2px 10px;background:transparent;border:none;">
             X <input type="number" id="emitterX" class="coord-input" value="0">
             Y <input type="number" id="emitterY" class="coord-input" value="0">
+            <span class="stat-divider">|</span>
+            W <input type="number" id="canvasWidth" class="coord-input canvas-size-input" value="1920">
+            H <input type="number" id="canvasHeight" class="coord-input canvas-size-input" value="1080">
+            <button id="canvasSizeAutoBtn" class="mode-btn" style="padding:1px 6px;font-size:10px;min-width:auto;" title="重置为容器尺寸">A</button>
         </span>
     </div>
     <div class="tool-group">
+        <button id="panModeBtn" class="mode-btn" aria-label="平移模式">平移</button>
         <button id="clearBtn" aria-label="清除所有粒子">清除粒子</button>
         <div class="stat" style="border-left: none; background: transparent; padding: 0; margin-left: 8px;">
             粒子: <span id="particleCount" class="particle-count">0</span>
@@ -51,7 +56,7 @@
         <div class="progress-slider-wrapper">
             <input type="range" id="progressSlider" class="progress-slider" min="0" max="100" step="0.01" value="0" aria-label="播放进度滑块">
         </div>
-        <span class="total-time" id="totalTimeDisplay">0.00</span>
+        <span class="total-time" id="totalTimeDisplay">0.00s</span>
     </div>
 </div>
 
@@ -71,16 +76,23 @@
 
         <!-- 2. 粒子 -->
         <h4>粒子</h4>
-        <div class="param-row" style="flex-wrap: wrap;">
-            <span>发射量</span>
-            <input type="range" id="emitRate" min="1" max="800" step="5" value="220" aria-label="发射速率滑块" style="flex:1; min-width:60px;">
-            <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值" style="width:65px;">
-            <span class="range-unit">个/s</span>
-            <label class="switch" style="margin-left:auto;"><input type="checkbox" id="randomRateSwitch"><span class="slider round"></span> 随机化</label>
+        <div class="param-group">
+            <div class="param-row">
+                <span>发射量</span>
+                <input type="range" id="emitRate" min="1" max="800" step="5" value="220" aria-label="发射速率滑块" style="flex:1; min-width:60px;">
+                <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值" style="width:65px;">
+                <span class="range-unit">个/s</span>
+            </div>
+            <div class="group-content">
+                <div class="param-row">
+                    <span>随机化</span>
+                    <label class="switch"><input type="checkbox" id="randomRateSwitch"><span class="slider round"></span></label>
+                </div>
+            </div>
         </div>
         <div class="param-row">
             <span>发射区半径</span>
-            <input type="range" id="emitRadius" min="0" max="45" step="1" value="5" aria-label="发射半径滑块">
+            <input type="range" id="emitRadius" min="0" max="200" step="1" value="5" aria-label="发射半径滑块">
             <input type="number" id="emitRadiusVal" class="range-value" step="1" value="5" aria-label="发射半径数值">
             <span class="range-unit">px</span>
         </div>
@@ -147,13 +159,13 @@
         <!-- 图片模式设置 -->
         <div id="imageSettings">
             <div class="param-row">
-                <span>贴图</span>
+                <span>纹理</span>
                 <div class="file-controls">
                     <span id="textureFileName" class="file-name">未选择</span>
-                    <label class="file-label" aria-label="上传图片按钮（可多选）">上传图片
-                        <input type="file" id="textureUpload" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml" style="display:none;">
+                    <label class="file-label" aria-label="上传图片按钮（可多选）">导入
+                        <input type="file" id="textureUpload" multiple accept="image/png,image/jpeg,image/webp,image/svg+xml,image/gif" style="display:none;">
                     </label>
-                    <button id="resetTextureBtn" class="file-label" aria-label="重置为默认纹理">重置纹理</button>
+                    <button id="resetTextureBtn" class="file-label" aria-label="重置为默认纹理">重置</button>
                 </div>
             </div>
             <div class="param-group" id="animGroup" style="display:none;">
@@ -172,13 +184,39 @@
                         <input type="number" id="animFpsVal" class="range-value" step="1" value="10" style="width:55px;">
                         <span class="range-unit">FPS</span>
                     </div>
+                    <div id="multiTexRow" class="param-row" style="margin-top:4px;">
+                        <span>多图独立动画</span>
+                        <label class="switch"><input type="checkbox" id="multiTexSwitch"><span class="slider round"></span></label>
+                    </div>
+                    <div id="unitAnimEditor" class="param-group" style="display:none; margin-top:6px;">
+                        <div class="param-row" style="margin-bottom:2px;">
+                            <select id="unitAnimTarget" aria-label="动画单元" style="width:100%; min-width:0; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;"></select>
+                        </div>
+                        <div class="group-content" style="padding-left:24px; border-left:1px solid rgba(102,204,255,0.3);">
+                            <div class="param-row">
+                                <span>动画顺序</span>
+                                <select id="unitAnimModeSelect" style="width:auto; min-width:80px; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+                                    <option value="0">完全随机</option>
+                                    <option value="1">随机起始点</option>
+                                    <option value="2">固定顺序</option>
+                                </select>
+                            </div>
+                            <div class="param-row">
+                                <span>播放速度</span>
+                                <input type="range" id="unitAnimFps" min="1" max="120" step="1" value="10" style="flex:1; min-width:60px;">
+                                <input type="number" id="unitAnimFpsVal" class="range-value" step="1" value="10" style="width:55px;">
+                                <span class="range-unit">FPS</span>
+                            </div>
+                        </div>
+                    </div>
                     <div id="textureOrderRow" class="param-row" style="margin-top:4px;">
-                        <span>顺序</span>
+                        <span id="textureOrderLabel">顺序</span>
                         <div id="textureOrderWrapper" style="flex:1; min-width:0; overflow:hidden; border-radius:12px; border:1px solid rgba(102,204,255,0.3);">
                             <div id="textureOrderList" class="texture-order-list" style="margin-top:0; padding:6px; max-height:200px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(78px,1fr)); gap:6px;"></div>
             </div>
         </div>
             </div>
+        </div>
         </div>
 
         <!-- 文本模式设置 -->
@@ -209,25 +247,40 @@
                 </label>
             </div>
         </div>
-        <div id="textStyleRow" class="param-row" style="display:none;">
-            <span>样式</span>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <label class="switch"><input type="checkbox" id="fontItalic"><span class="slider round"></span> 斜体</label>
-                <label class="switch"><input type="checkbox" id="fontUnderline"><span class="slider round"></span> 下划线</label>
-                <label class="switch"><input type="checkbox" id="fontStrike"><span class="slider round"></span> 删除线</label>
-                <label style="display:flex; align-items:center; gap:4px;">字距：<input type="number" id="fontLetterSpacing" value="0" step="0.5" style="width:60px; background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;"> px</label>
-                <label style="display:flex; align-items:center; gap:4px;">字重：
-                    <select id="fontWeightSelect" style="background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;">
+        <div id="textStyleRow" class="param-group" style="display:none;">
+            <span class="group-label">样式</span>
+            <div class="group-content">
+                <div class="param-row">
+                    <span>字距</span>
+                    <input type="range" id="fontLetterSpacingRange" min="0" max="100" step="0.5" value="0" style="flex:1; min-width:60px;">
+                    <input type="number" id="fontLetterSpacing" value="0" step="0.5" min="0" max="100" style="width:60px; background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;">
+                    <span class="range-unit">px</span>
+                </div>
+                <div class="param-row">
+                    <span>字重</span>
+                    <select id="fontWeightSelect" data-stepper-min="80" style="background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;">
                         <option value="normal">常规</option>
                         <option value="bold">粗体</option>
                         <option value="lighter">细体</option>
                     </select>
-                </label>
+                </div>
+                <div class="param-row">
+                    <span>斜体</span>
+                    <label class="switch"><input type="checkbox" id="fontItalic"><span class="slider round"></span></label>
+                </div>
+                <div class="param-row">
+                    <span>下划线</span>
+                    <label class="switch"><input type="checkbox" id="fontUnderline"><span class="slider round"></span></label>
+                </div>
+                <div class="param-row">
+                    <span>删除线</span>
+                    <label class="switch"><input type="checkbox" id="fontStrike"><span class="slider round"></span></label>
+                </div>
             </div>
         </div>
 
         <div class="param-row">
-            <span>透明度</span>
+            <span>不透明度</span>
             <div class="range-controls">
                     <input type="number" id="alphaMinVal" class="range-value" step="1" value="100" style="width:50px;">
                     <input type="range" id="alphaMin" min="0" max="100" step="1" value="100" style="flex:1; min-width:40px;">
@@ -376,19 +429,18 @@
 
         <!-- 5. 时间戳序列（仅序列脉冲模式显示） -->
         <div id="sequencePanel" style="display: none;">
-            <h4>时间戳序列</h4>
+            <div class="param-row" style="margin-bottom: 6px;">
+                <h4 style="margin:0; border-left:4px solid #66ccff; padding-left:10px; color:#88ddff; font-size:14px;">时间戳序列</h4>
+                <select id="timelineSource" style="margin-left:auto; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+                    <option value="manual">手动输入</option>
+                    <option value="midi">MIDI</option>
+                </select>
+            </div>
             <div class="param-row">
                 <span>单次发射量</span>
                 <input type="range" id="burstCount" min="1" max="200" step="1" value="12">
                 <input type="number" id="burstCountVal" class="range-value" step="1" value="12">
                 <span class="range-unit">个</span>
-            </div>
-            <div class="param-row">
-                <span>数据源</span>
-                <select id="timelineSource" style="margin-left:auto; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
-                    <option value="manual">手动输入</option>
-                    <option value="midi">MIDI</option>
-                </select>
             </div>
             <div class="param-row">
                 <span>时间戳数组</span>
@@ -407,7 +459,8 @@
                 </select>
             </div>
             <div class="param-row">
-                <label class="switch"><input type="checkbox" id="loopSeqCheckbox"><span class="slider round"></span> 循环</label>
+                <span>循环</span>
+                <label class="switch"><input type="checkbox" id="loopSeqCheckbox"><span class="slider round"></span></label>
             </div>
         </div>
 
@@ -430,20 +483,19 @@
                     <div class="param-row">
                         <span>音轨</span>
                         <select id="midiTrackSelect" style="flex:1; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:#1e1f2c; color:white;">
-                            <option value="all">所有轨道合并</option>
+                            <option value="all">&lt; 所有轨道合并 &gt;</option>
                         </select>
                     </div>
                 </div>
 
             </div>
             </div>
-        </div>
 
         <hr id="exportSeparator" style="margin-top: 16px;">
 
         <!-- 7. 渲染PNG序列 -->
         <div id="exportPanel">
-            <h4>渲染PNG序列（透明背景）</h4>
+            <h4>渲染（无背景）</h4>
             <div class="param-row">
                 <span>帧率</span>
                 <input type="range" id="exportFps" min="1" max="120" step="1" value="30" aria-label="渲染帧率滑块">
@@ -459,10 +511,42 @@
                 <span class="range-unit">s</span>
             </div>
             <div class="param-row">
-                <label class="switch"><input type="checkbox" id="clearBeforeRender"><span class="slider round"></span> 渲染前清空粒子</label>
+                <span>分辨率倍率</span>
+                <input type="range" id="resolutionScale" min="0.1" max="10" step="0.1" value="1">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="resolutionScaleVal" class="range-value" step="any" value="1" style="width: 70px;">
+                    <span class="range-unit">x</span>
+                </div>
+            </div>
+            <div class="param-row" id="webpQualityRow">
+                <span>图像质量</span>
+                <input type="range" id="webpQuality" min="0.1" max="1" step="0.01" value="0.92">
+                <div style="display: flex; align-items: center; gap: 4px;">
+                    <input type="number" id="webpQualityVal" class="range-value" step="any" value="0.92" style="width: 70px;">
+                </div>
             </div>
             <div class="param-row">
-                <button id="exportBtn" class="full-width-btn" aria-label="开始渲染PNG序列">开始渲染</button>
+                <span>格式</span>
+                <select id="exportFormat" class="range-value" style="flex:1;">
+                    <option value="sequence" selected>WebP（静帧序列）</option>
+                    <option value="animation">WebP（动图）</option>
+                    <option value="png-sequence">PNG（静帧序列）</option>
+                    <option value="png-animation">PNG（动图）</option>
+                </select>
+            </div>
+            <div class="param-row" id="exportMethodRow">
+                <span>生成方式</span>
+                <select id="exportMethod" class="range-value" style="flex:1;">
+                    <option value="folder" selected>直接写入文件夹</option>
+                    <option value="zip">ZIP压缩包</option>
+                </select>
+            </div>
+            <div class="param-row">
+                <span>清屏后执行</span>
+                <label class="switch"><input type="checkbox" id="clearBeforeRender"><span class="slider round"></span></label>
+            </div>
+            <div class="param-row">
+                <button id="exportBtn" class="full-width-btn" aria-label="开始渲染WebP序列">开始渲染</button>
             </div>
             <div class="param-row" id="cancelExportRow" style="display: none;">
                 <button id="cancelExportBtn" class="full-width-btn" aria-label="取消渲染">取消渲染</button>
@@ -523,11 +607,12 @@
     </div>
 </nav>
 
-<script src="midiread.js"></script>
+<script src="midi-mapper.js"></script>
 <script src="particle.js"></script>
 <script src="ui.js"></script>
 <script src="sequence.js"></script>
 <script src="io.js"></script>
 <script src="render.js"></script>
+<script src="stepper-select.js"></script>
 </body>
 </html>

@@ -240,6 +240,17 @@
             });
         }
 
+        // 平移模式
+        const panBtn = document.getElementById('panModeBtn');
+        if (panBtn && window._setPanMode) {
+            let panActive = false;
+            panBtn.addEventListener('click', () => {
+                panActive = !panActive;
+                panBtn.classList.toggle('active', panActive);
+                window._setPanMode(panActive);
+            });
+        }
+
         // 清除粒子
         const clearBtn = document.getElementById('clearBtn');
         if (clearBtn) {
@@ -247,6 +258,47 @@
                 window._clearParticles();
             });
         }
+
+        // ---------- 画布宽高输入绑定 ----------
+        const cwInput = document.getElementById('canvasWidth');
+        const chInput = document.getElementById('canvasHeight');
+        const canvasSizeAuto = document.getElementById('canvasSizeAutoBtn');
+        function initCanvasSize() {
+            const container = document.querySelector('.canvas-container');
+            if (cwInput && container) cwInput.value = container.clientWidth;
+            if (chInput && container) chInput.value = container.clientHeight;
+            if (window._setAutoFit) window._setAutoFit(true);
+            if (canvasSizeAuto) canvasSizeAuto.classList.add('active');
+        }
+        if (cwInput) {
+            cwInput.addEventListener('input', () => {
+                if (window._setAutoFit) window._setAutoFit(false);
+                if (canvasSizeAuto) canvasSizeAuto.classList.remove('active');
+                if (window._resizeCanvas) window._resizeCanvas();
+            });
+        }
+        if (chInput) {
+            chInput.addEventListener('input', () => {
+                if (window._setAutoFit) window._setAutoFit(false);
+                if (canvasSizeAuto) canvasSizeAuto.classList.remove('active');
+                if (window._resizeCanvas) window._resizeCanvas();
+            });
+        }
+        if (canvasSizeAuto) {
+            canvasSizeAuto.addEventListener('click', () => {
+                const active = canvasSizeAuto.classList.toggle('active');
+                if (active) {
+                    const container = document.querySelector('.canvas-container');
+                    if (cwInput && container) cwInput.value = container.clientWidth;
+                    if (chInput && container) chInput.value = container.clientHeight;
+                    if (window._setAutoFit) window._setAutoFit(true);
+                } else {
+                    if (window._setAutoFit) window._setAutoFit(false);
+                    if (window._resizeCanvas) window._resizeCanvas();
+                }
+            });
+        }
+        initCanvasSize();
 
         // 随机速率开关
         const randomRateSwitch = document.getElementById('randomRateSwitch');
@@ -262,41 +314,142 @@
         const textureUpload = document.getElementById('textureUpload');
         const textureFileNameSpan = document.getElementById('textureFileName');
         if (textureUpload) {
-            textureUpload.addEventListener('change', (e) => {
-                const files = Array.from(e.target.files);
-                if (files.length === 0) return;
-                let loadedCount = 0;
+            // 判断文件是否为 gif/webp/apng 动图（PNG 需含 acTL chunk）
+            async function looksAnimated(name, buf) {
+                if (/\.(gif|webp|apng)$/i.test(name)) return true;
+                if (!/\.png$/i.test(name)) return false;
+                try {
+                    const u8 = new Uint8Array(buf);
+                    const dv = new DataView(u8.buffer, u8.byteOffset);
+                    let o = 8;
+                    while (o + 12 <= u8.length) {
+                        const len = dv.getUint32(o, false);
+                        const tag = String.fromCharCode(u8[o+4], u8[o+5], u8[o+6], u8[o+7]);
+                        if (len < 0 || o + 12 + len > u8.length) break;
+                        if (tag === 'acTL') return true;
+                        o += 12 + len;
+                    }
+                } catch (e) {}
+                return false;
+            }
+            // 用 WebCodecs ImageDecoder 分解动图帧
+            async function splitAnimated(file, buf) {
+                let mime;
+                if (file.type === 'image/gif' || /\.gif$/i.test(file.name)) mime = 'image/gif';
+                else if (/\.webp$/i.test(file.name)) mime = 'image/webp';
+                else mime = 'image/apng';
+                const dec = new ImageDecoder({ data: buf, type: mime });
+                await dec.tracks.ready;
+                const track = dec.tracks.selectedTrack;
+                const count = track.frameCount;
+                if (count <= 1) { dec.close(); return null; }
+                const frames = [];
+                const names = [];
+                const durations = [];
+                const isPngSrc = mime === 'image/apng';
+                const frameMime = isPngSrc ? 'image/png' : 'image/webp';
+                const frameExt = isPngSrc ? '.png' : '.webp';
+                const base = file.name.replace(/\.(gif|webp|png|apng)$/i, '');
+                for (let i = 0; i < count; i++) {
+                    const { image } = await dec.decode({ frameIndex: i });
+                    durations.push(image.duration || 0);
+                    const c = document.createElement('canvas');
+                    c.width = image.displayWidth;
+                    c.height = image.displayHeight;
+                    c.getContext('2d').drawImage(image, 0, 0);
+                    if (image.close) image.close();
+                    const img = new Image();
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = c.toDataURL(frameMime);
+                    });
+                    frames.push(img);
+                    names.push(`${base}_${i + 1}${frameExt}`);
+                }
+                dec.close();
+                let fps = 0;
+                const validDurs = durations.filter(d => d > 0);
+                if (validDurs.length > 0) {
+                    const avgUs = validDurs.reduce((a, b) => a + b, 0) / validDurs.length;
+                    fps = Math.round(1e6 / avgUs);
+                    if (fps < 1) fps = 1;
+                    if (fps > 120) fps = 120;
+                }
+                return { frames, names, count, fps };
+            }
+            // 从纹理单元数组派生扁平帧数组（供旧逻辑/导出兼容）
+            function rebuildFlatFromUnits() {
+                const units = window._textureUnits || [];
                 const imgs = [];
                 const fileNames = [];
-                files.forEach(file => {
-                    fileNames.push(file.name);
-                    const img = new Image();
-                    img.onload = () => {
-                        imgs.push(img);
-                        loadedCount++;
-                        if (loadedCount === files.length) {
-                            window._particleTextures = imgs;
-                            window._textureFileNames = fileNames;
-                            updateTextureOrderList();
-                            if (textureFileNameSpan) textureFileNameSpan.innerText = fileNames.join(', ');
-                            const maxDim = Math.max(imgs[0].width, imgs[0].height);
-                            let newMin = Math.min(80, Math.max(8, Math.floor(maxDim * 0.5)));
-                            let newMax = Math.min(120, Math.max(16, Math.floor(maxDim * 1.2)));
-                            if (newMin > newMax) newMin = newMax;
-                            window._particleParams.sizeMin = newMin;
-                            window._particleParams.sizeMax = newMax;
-                            const sizeMinSlider = document.getElementById('sizeMin');
-                            const sizeMinVal = document.getElementById('sizeMinVal');
-                            const sizeMaxSlider = document.getElementById('sizeMax');
-                            const sizeMaxVal = document.getElementById('sizeMaxVal');
-                            if (sizeMinSlider) sizeMinSlider.value = newMin;
-                            if (sizeMinVal) sizeMinVal.value = newMin;
-                            if (sizeMaxSlider) sizeMaxSlider.value = newMax;
-                            if (sizeMaxVal) sizeMaxVal.value = newMax;
+                for (const u of units) {
+                    for (let i = 0; i < u.frames.length; i++) {
+                        imgs.push(u.frames[i]);
+                        fileNames.push(u.frameNames ? u.frameNames[i] : (u.name + '_' + (i + 1)));
+                    }
+                }
+                window._particleTextures = imgs;
+                window._textureFileNames = fileNames;
+            }
+            window._rebuildFlatFromUnits = rebuildFlatFromUnits;
+            // 导入纹理按钮旁显示的文件名：优先显示原始文件名（单元级），旧格式回退到帧名
+            window._displayTextureNames = function() {
+                const units = window._textureUnits || [];
+                if (units.length > 0) return units.map(u => u.name || '纹理').join(', ');
+                return (window._textureFileNames || []).join(', ');
+            };
+            textureUpload.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files);
+                if (files.length === 0) return;
+                const units = [];
+                let animSplitCount = 0;
+                for (const file of files) {
+                    const buf = await file.arrayBuffer();
+                    if (typeof ImageDecoder !== 'undefined' && await looksAnimated(file.name, buf)) {
+                        try {
+                            const split = await splitAnimated(file, buf);
+                            if (split) {
+                                units.push({ name: file.name, isAnim: true, fps: split.fps || 0, anim: { mode: 2, fps: split.fps || 10 }, frames: split.frames, frameNames: split.names });
+                                animSplitCount += split.count;
+                                if (window.Toast) window.Toast.info(`已分解动图「${file.name}」为 ${split.count} 帧`);
+                                continue;
+                            }
+                        } catch (err) {
+                            console.warn('动图分解失败，按静态图处理：', file.name, err);
                         }
-                    };
-                    img.src = URL.createObjectURL(file);
-                });
+                    }
+                    const img = new Image();
+                    await new Promise((resolve, reject) => {
+                        img.onload = resolve;
+                        img.onerror = reject;
+                        img.src = URL.createObjectURL(file);
+                    });
+                    units.push({ name: file.name, isAnim: false, fps: 0, anim: null, frames: [img], frameNames: [file.name] });
+                }
+                if (units.length === 0) return;
+                window._textureUnits = units;
+                window._selectedUnitIdx = null;
+                const ue = document.getElementById('unitAnimEditor');
+                if (ue) ue.style.display = 'none';
+                rebuildFlatFromUnits();
+                updateTextureOrderList();
+                if (textureFileNameSpan) textureFileNameSpan.innerText = (window._displayTextureNames ? window._displayTextureNames() : (window._textureFileNames || []).join(', '));
+                const allImgs = window._particleTextures || [];
+                const maxDim = Math.max(allImgs[0].width, allImgs[0].height);
+                let newMin = Math.min(80, Math.max(8, Math.floor(maxDim * 0.5)));
+                let newMax = Math.min(120, Math.max(16, Math.floor(maxDim * 1.2)));
+                if (newMin > newMax) newMin = newMax;
+                window._particleParams.sizeMin = newMin;
+                window._particleParams.sizeMax = newMax;
+                const sizeMinSlider = document.getElementById('sizeMin');
+                const sizeMinVal = document.getElementById('sizeMinVal');
+                const sizeMaxSlider = document.getElementById('sizeMax');
+                const sizeMaxVal = document.getElementById('sizeMaxVal');
+                if (sizeMinSlider) sizeMinSlider.value = newMin;
+                if (sizeMinVal) sizeMinVal.value = newMin;
+                if (sizeMaxSlider) sizeMaxSlider.value = newMax;
+                if (sizeMaxVal) sizeMaxVal.value = newMax;
             });
         }
 
@@ -305,6 +458,10 @@
             resetTextureBtn.addEventListener('click', () => {
                 window._resetDefaultTexture();
                 window._textureFileNames = [];
+                window._textureUnits = [];
+                window._selectedUnitIdx = null;
+                const ue = document.getElementById('unitAnimEditor');
+                if (ue) ue.style.display = 'none';
                 updateTextureOrderList();
                 if (textureFileNameSpan) textureFileNameSpan.innerText = '默认纹理（1张）';
             });
@@ -313,7 +470,9 @@
         // ---- 图片动画模式 ----
         window._particleAnimMode = 0;
         window._particleAnimFps = 10;
+        window._particleMultiTex = false;
         window._textureFileNames = [];
+        window._textureUnits = [];
 
         const animModeSelect = document.getElementById('animModeSelect');
         const animGroup = document.getElementById('animGroup');
@@ -344,6 +503,38 @@
             updateAnimFps();
         }
 
+        const multiTexSwitch = document.getElementById('multiTexSwitch');
+        if (multiTexSwitch) {
+            const animModeRow = animModeSelect ? animModeSelect.closest('.param-row') : null;
+            const animFpsRow = document.getElementById('animFpsRow');
+            const unitAnimEditor = document.getElementById('unitAnimEditor');
+            window._syncAnimControls = function() {
+                const on = window._particleMultiTex;
+                if (animModeRow) animModeRow.style.display = on ? 'none' : '';
+                if (animFpsRow) animFpsRow.style.display = on ? 'none' : '';
+                if (unitAnimEditor) {
+                    if (on && window._selectedUnitIdx != null) {
+                        const u = (window._textureUnits || [])[window._selectedUnitIdx];
+                        unitAnimEditor.style.display = (u && u.isAnim) ? '' : 'none';
+                    } else {
+                        unitAnimEditor.style.display = 'none';
+                    }
+                }
+            };
+            window._setMultiTex = function(v) {
+                window._particleMultiTex = !!v;
+                multiTexSwitch.checked = !!v;
+                if (window._syncAnimControls) window._syncAnimControls();
+                updateTextureOrderList();
+            };
+            multiTexSwitch.addEventListener('change', () => {
+                window._particleMultiTex = multiTexSwitch.checked;
+                if (window._syncAnimControls) window._syncAnimControls();
+                updateTextureOrderList();
+            });
+            multiTexSwitch.checked = !!window._particleMultiTex;
+        }
+
         // Drag-reorder state (persists across updateTextureOrderList calls)
         let _dragFromIdx = -1;
         let _placeholderIdx = -1;
@@ -358,14 +549,46 @@
         function updateTextureOrderList() {
             const container = document.getElementById('textureOrderList');
             if (!container) return;
-            const texs = window._particleTextures || [];
+            const multiTex = !!window._particleMultiTex;
+            const units = window._textureUnits && window._textureUnits.length > 0 ? window._textureUnits : null;
 
-            if (texs.length < 2) {
+            // 显示条件：有动画或多张图时才显示动画区
+            let showGroup = false;
+            if (units) {
+                const hasAnim = units.some(u => u.isAnim);
+                showGroup = hasAnim || units.length >= 2;
+            } else if ((window._particleTextures || []).length >= 2) {
+                showGroup = true;
+            }
+            if (!showGroup) {
                 if (animGroup) animGroup.style.display = 'none';
                 return;
             }
-
             if (animGroup) animGroup.style.display = '';
+            const orderLabel = document.getElementById('textureOrderLabel');
+            if (orderLabel) orderLabel.textContent = multiTex ? '预览' : '排序';
+
+            // 构建显示条目
+            // 多图开：每图一格；多图关：全部分解为帧，总格数 = 总帧数
+            const items = [];
+            const operateUnits = multiTex && !!units;
+            if (operateUnits) {
+                units.forEach((u, i) => {
+                    items.push({ img: u.frames[0], name: u.name || `纹理${i + 1}`, isAnim: !!u.isAnim, frameCount: u.frames.length, unitIdx: i, unit: u });
+                });
+            } else if (units) {
+                const flatNames = window._textureFileNames || [];
+                let k = 0;
+                units.forEach(u => {
+                    for (let i = 0; i < u.frames.length; i++, k++) {
+                        items.push({ img: u.frames[i], name: flatNames[k] || (u.frameNames ? u.frameNames[i] : (u.name + '_' + (i + 1))), isAnim: false, unit: null });
+                    }
+                });
+            } else {
+                const flat = window._particleTextures || [];
+                const names = window._textureFileNames || [];
+                for (let i = 0; i < flat.length; i++) items.push({ img: flat[i], name: names[i] || `纹理${i + 1}`, isAnim: false, unit: null });
+            }
 
             container.innerHTML = '';
 
@@ -388,28 +611,57 @@
                 });
             }
 
-            texs.forEach((img, i) => {
+            items.forEach((it, i) => {
                 const item = document.createElement('div');
                 item.className = 'texture-order-item';
-                item.draggable = true;
+                item.draggable = !operateUnits;
+                if (operateUnits) item.classList.add('preview-mode');
                 item.dataset.index = i;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = 80;
                 canvas.height = 80;
                 const c = canvas.getContext('2d');
-                c.drawImage(img, 0, 0, 80, 80);
+                c.drawImage(it.img, 0, 0, 80, 80);
                 const thumb = document.createElement('img');
                 thumb.className = 'thumb';
+                thumb.draggable = false;
                 thumb.src = canvas.toDataURL();
                 thumb.alt = '';
 
                 const idxBadge = document.createElement('span');
                 idxBadge.className = 'item-idx';
-                idxBadge.textContent = i + 1;
+                idxBadge.textContent = (i + 1);
+
+                const nameEl = document.createElement('span');
+                nameEl.className = 'item-name';
+                nameEl.textContent = it.name + (it.isAnim ? `（${it.frameCount}帧）` : '');
 
                 item.appendChild(thumb);
                 item.appendChild(idxBadge);
+                item.appendChild(nameEl);
+
+                if (operateUnits) {
+                    if (window._selectedUnitIdx === it.unitIdx) item.classList.add('selected');
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleUnitSelect(it.unitIdx);
+                    });
+                }
+
+                if (it.isAnim && operateUnits) {
+                    const dot = document.createElement('span');
+                    dot.className = 'item-select-dot';
+                    dot.title = '点击选中/取消';
+                    if (window._selectedUnitIdx === it.unitIdx) dot.classList.add('active');
+                    dot.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleUnitSelect(it.unitIdx);
+                    });
+                    item.appendChild(dot);
+                }
 
                 item.addEventListener('dragstart', (e) => {
                     e.dataTransfer.effectAllowed = 'move';
@@ -445,15 +697,23 @@
                     e.preventDefault();
                     e.stopPropagation();
                     if (_placeholderIdx >= 0 && _dragFromIdx >= 0) {
-                        const arr = window._particleTextures || [];
-                        const nameArr = window._textureFileNames || [];
-                        const [movedImg] = arr.splice(_dragFromIdx, 1);
-                        const [movedName] = nameArr.splice(_dragFromIdx, 1);
-                        const targetIdx = _dragFromIdx < _placeholderIdx ? _placeholderIdx - 1 : _placeholderIdx;
-                        arr.splice(targetIdx, 0, movedImg);
-                        nameArr.splice(targetIdx, 0, movedName);
-                        window._particleTextures = arr;
-                        window._textureFileNames = nameArr;
+                        if (operateUnits) {
+                            const [moved] = units.splice(_dragFromIdx, 1);
+                            const targetIdx = _dragFromIdx < _placeholderIdx ? _placeholderIdx - 1 : _placeholderIdx;
+                            units.splice(targetIdx, 0, moved);
+                            window._textureUnits = units;
+                            if (window._rebuildFlatFromUnits) window._rebuildFlatFromUnits();
+                        } else {
+                            const flat = window._particleTextures || [];
+                            const nameArr = window._textureFileNames || [];
+                            const [movedImg] = flat.splice(_dragFromIdx, 1);
+                            const [movedName] = nameArr.splice(_dragFromIdx, 1);
+                            const targetIdx = _dragFromIdx < _placeholderIdx ? _placeholderIdx - 1 : _placeholderIdx;
+                            flat.splice(targetIdx, 0, movedImg);
+                            nameArr.splice(targetIdx, 0, movedName);
+                            window._particleTextures = flat;
+                            window._textureFileNames = nameArr;
+                        }
                     }
                     _resetDragState();
                     updateTextureOrderList();
@@ -467,6 +727,108 @@
                 container.appendChild(item);
             });
         }
+
+        // ---- 选中单元动画编辑 ----
+        window._selectedUnitIdx = null;
+        const unitAnimEditor = document.getElementById('unitAnimEditor');
+        const unitAnimTarget = document.getElementById('unitAnimTarget');
+        const unitAnimModeSelect = document.getElementById('unitAnimModeSelect');
+        const unitAnimFpsSlider = document.getElementById('unitAnimFps');
+        const unitAnimFpsVal = document.getElementById('unitAnimFpsVal');
+
+        function fillUnitTarget(i) {
+            const units = window._textureUnits || [];
+            const animUnits = [];
+            units.forEach((u, idx) => {
+                if (u.isAnim) animUnits.push({ idx, label: (u.name || `纹理${idx + 1}`) + `（${u.frames.length}帧）` });
+            });
+            if (unitAnimTarget) {
+                unitAnimTarget.innerHTML = '';
+                animUnits.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.idx;
+                    opt.textContent = u.label;
+                    unitAnimTarget.appendChild(opt);
+                });
+                if (i >= 0) unitAnimTarget.value = i;
+                if (window.StepperSelect) window.StepperSelect.rebuild('unitAnimTarget');
+            }
+        }
+
+        function toggleUnitSelect(idx) {
+            const units = window._textureUnits || [];
+            if (idx < 0 || idx >= units.length) return;
+            if (window._selectedUnitIdx === idx) {
+                window._selectedUnitIdx = null;
+                unitAnimEditor.style.display = 'none';
+                if (window._syncAnimControls) window._syncAnimControls();
+                updateTextureOrderList();
+                return;
+            }
+            const unit = units[idx];
+            if (unit.isAnim) {
+                selectUnitAnim(idx);
+            } else {
+                window._selectedUnitIdx = idx;
+                unitAnimEditor.style.display = 'none';
+                if (window._syncAnimControls) window._syncAnimControls();
+                updateTextureOrderList();
+            }
+        }
+
+        window.selectUnitAnim = function(i) {
+            const units = window._textureUnits || [];
+            if (!unitAnimEditor || i < 0 || i >= units.length) return;
+            const unit = units[i];
+            if (!unit.isAnim) return;
+            window._selectedUnitIdx = i;
+            const anim = unit.anim || { mode: 2, fps: unit.fps || 10 };
+            unit.anim = anim;
+            fillUnitTarget(i);
+            if (unitAnimModeSelect) unitAnimModeSelect.value = anim.mode;
+            if (window.StepperSelect) window.StepperSelect.rebuild('unitAnimModeSelect');
+            if (unitAnimFpsSlider) unitAnimFpsSlider.value = anim.fps;
+            if (unitAnimFpsVal) unitAnimFpsVal.value = anim.fps;
+            unitAnimEditor.style.display = '';
+            if (window._syncAnimControls) window._syncAnimControls();
+            updateTextureOrderList();
+        };
+
+        if (unitAnimTarget) {
+            unitAnimTarget.addEventListener('change', () => {
+                const idx = parseInt(unitAnimTarget.value);
+                if (!isNaN(idx)) selectUnitAnim(idx);
+            });
+        }
+
+        if (unitAnimModeSelect) {
+            unitAnimModeSelect.addEventListener('change', () => {
+                const units = window._textureUnits || [];
+                if (window._selectedUnitIdx == null || !units[window._selectedUnitIdx]) return;
+                const anim = units[window._selectedUnitIdx].anim || {};
+                anim.mode = parseInt(unitAnimModeSelect.value);
+                units[window._selectedUnitIdx].anim = anim;
+            });
+        }
+        if (unitAnimFpsSlider && unitAnimFpsVal) {
+            const syncUnitFps = () => {
+                const v = parseInt(unitAnimFpsSlider.value);
+                unitAnimFpsVal.value = v;
+                const units = window._textureUnits || [];
+                if (window._selectedUnitIdx == null || !units[window._selectedUnitIdx]) return;
+                const anim = units[window._selectedUnitIdx].anim || {};
+                anim.fps = v;
+                units[window._selectedUnitIdx].anim = anim;
+            };
+            unitAnimFpsSlider.addEventListener('input', syncUnitFps);
+            unitAnimFpsVal.addEventListener('change', () => {
+                let v = parseInt(unitAnimFpsVal.value);
+                v = Math.min(parseInt(unitAnimFpsSlider.max), Math.max(parseInt(unitAnimFpsSlider.min), v));
+                unitAnimFpsSlider.value = v;
+                syncUnitFps();
+            });
+        }
+
         window._updateTextureOrderList = updateTextureOrderList;
 
         // 外观下拉菜单
@@ -492,7 +854,7 @@
                 imageSettings.style.display = 'none';
                 textSettings.style.display = 'flex';
                 textFontRow.style.display = 'flex';
-                textStyleRow.style.display = 'flex';
+                textStyleRow.style.display = 'block';
                 window._particleTextMode = true;
             }
         }
@@ -537,6 +899,7 @@
                     fontSelect.appendChild(option);
                     fontSelect.value = fontName;
                     window._particleSelectedFont = fontName;
+                    window.StepperSelect?.rebuildAll();
                 } catch (err) {
                     console.error('字体导入失败:', err);
                     Toast.error('字体导入失败: ' + err.message);
@@ -550,6 +913,7 @@
         const fontUnderline = document.getElementById('fontUnderline');
         const fontStrike = document.getElementById('fontStrike');
         const fontLetterSpacing = document.getElementById('fontLetterSpacing');
+        const fontLetterSpacingRange = document.getElementById('fontLetterSpacingRange');
 
         function updateFontStyles() {
             window._particleFontStyles = {
@@ -566,6 +930,22 @@
         if (fontStrike) fontStrike.addEventListener('change', updateFontStyles);
         if (fontLetterSpacing) fontLetterSpacing.addEventListener('input', updateFontStyles);
         if (fontWeightSelect) fontWeightSelect.addEventListener('change', updateFontStyles);
+
+        if (fontLetterSpacingRange && fontLetterSpacing) {
+            fontLetterSpacingRange.addEventListener('input', () => {
+                fontLetterSpacing.value = fontLetterSpacingRange.value;
+                updateFontStyles();
+            });
+            fontLetterSpacing.addEventListener('change', () => {
+                let v = parseFloat(fontLetterSpacing.value);
+                if (isNaN(v)) return;
+                v = Math.min(parseFloat(fontLetterSpacingRange.max), Math.max(parseFloat(fontLetterSpacingRange.min), v));
+                fontLetterSpacing.value = v;
+                fontLetterSpacingRange.value = v;
+                updateFontStyles();
+            });
+            fontLetterSpacingRange.value = fontLetterSpacing.value;
+        }
 
         updateFontStyles();
 
@@ -640,6 +1020,7 @@
             // Also disable timelineSource MIDI option
             const tsOpt = document.querySelector('#timelineSource option[value="midi"]');
             if (tsOpt) tsOpt.disabled = !hasMidi;
+            window.StepperSelect?.rebuildAll();
         }
         window._updateMidiOptionState = updateMidiOptionState;
         updateMidiOptionState();

@@ -24,6 +24,8 @@
 
 ### 外观
 - **图片模式**：上传多张纹理（PNG/JPEG/WebP/SVG），支持动画播放和拖拽排序
+- **多图独立动画**：每张动图可独立配置动画顺序与播放速度；关闭开关时全部帧混用（每帧一格），开启时每图一格预览并支持逐图编辑
+- **自定义下拉**：动画顺序与单元目标等下拉控件统一使用全局 StepperSelect 样式
 - **文本模式**：自定义文字，13 种内置字体，支持导入外部字体
 - **调色器**：HSL 变化区间随机着色 / 十六进制颜色列表取值 / MIDI 音高映射
 - **染色强度**：独立控制色相/饱和度插值，保留原纹理亮度层次
@@ -63,10 +65,11 @@ sequence.js         时间戳序列播放与 MIDI 导入
 render.js           PNG 序列渲染导出
 io.js               项目文件导入/导出
 toast.js            Toast 弹窗通知
+stepper-select.js   自定义下拉（StepperSelect）
 theme.css           视觉主题（颜色/字体/动效）
 ui.css              布局框架（定位/尺寸/响应式）
 jszip.min.js        第三方：ZIP 读写
-midiread.js          自定义：轻量 MIDI 解析
+midi-mapper.js        自定义：轻量 MIDI 映射/解析
 MapleMono-NF-CN-Regular.ttf  默认 UI 字体
 ```
 

@@ -1,6 +1,6 @@
-// midiread.js - 轻量离线MIDI解析器，支持多轨分离
+// midi-mapper.js - 轻量离线MIDI映射/解析器，支持多轨分离
 (function(){
-    window.MidiParser = {
+    window.MidiMapper = {
         parse: function(arrayBuffer) {
             var data = new Uint8Array(arrayBuffer);
             if (data[0] !== 0x4D || data[1] !== 0x54 || data[2] !== 0x68 || data[3] !== 0x64) {

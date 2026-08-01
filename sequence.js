@@ -166,10 +166,12 @@
     function updateTotalDuration() {
         if (sequenceEvents.length === 0) totalDuration = 0;
         else totalDuration = sequenceEvents[sequenceEvents.length-1].time;
-        if (totalTimeSpan) totalTimeSpan.innerText = totalDuration.toFixed(2);
+        window._sequenceTotal = totalDuration;
+        if (totalTimeSpan) totalTimeSpan.innerText = totalDuration.toFixed(2) + 's';
         if (progressSlider) progressSlider.max = totalDuration;
         if (progressSlider) progressSlider.value = seqPausedTime;
         if (currentTimeInput) currentTimeInput.value = seqPausedTime.toFixed(2);
+        if (window._updateExportDurationMax) window._updateExportDurationMax();
     }
     
     function loadTimeline(resetProgress = true) {
@@ -378,6 +380,7 @@
 
     function setMode(continuous) {
         window._isContinuousMode = continuous;
+        if (window._updateExportDurationMax) window._updateExportDurationMax();
         if(continuous){
             if (continuousModeBtn) continuousModeBtn.classList.add('mode-active');
             if (sequenceModeBtn) sequenceModeBtn.classList.remove('mode-active');
@@ -485,11 +488,11 @@
             reader.onload = function(evt) {
                 try {
                     const arrayBuffer = evt.target.result;
-                    const midiData = window.MidiParser.parse(arrayBuffer);
+                    const midiData = window.MidiMapper.parse(arrayBuffer);
                     currentMidiTracks = midiData.tracks;
                     if (window._setMidiTracks) window._setMidiTracks(currentMidiTracks);
                     if (midiTrackSelect) {
-                        midiTrackSelect.innerHTML = '<option value="all">所有轨道合并</option>';
+                        midiTrackSelect.innerHTML = '<option value="all">&lt; 所有轨道合并 &gt;</option>';
                         for (let i=0; i<currentMidiTracks.length; i++) {
                             const tr = currentMidiTracks[i];
                             const option = document.createElement('option');
