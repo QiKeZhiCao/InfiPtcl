@@ -459,6 +459,8 @@
     
     window.addEventListener('keydown', (e) => {
         if (e.code === 'Space' && !window._isContinuousMode) {
+            const t = e.target;
+            if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return;
             e.preventDefault();
             if (seqPaused) playSequence();
             else if (seqPlaybackActive) pauseSequence();

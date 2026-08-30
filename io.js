@@ -32,6 +32,7 @@
         }
 
         // ====== Collect project state ======
+        window._collectProjectFingerprint = null;
         function collectState() {
             const params = JSON.parse(JSON.stringify(window._particleParams || {}));
             return {
@@ -65,6 +66,7 @@
                 seqLoop: document.getElementById('loopSeqCheckbox')?.checked ?? false,
                 clearBeforeRender: document.getElementById('clearBeforeRender')?.checked ?? false,
                 palette: window._paletteParams ? { ...window._paletteParams, tintIntensity: window._tintIntensity ?? 100, colors: [...(window._paletteParams.colors || [])] } : { mode: 'list', hueMin: 0, hueMax: 360, satMin: 60, satMax: 100, colors: [], tintIntensity: 100 },
+                noTextureSmoothing: !!window._noTextureSmoothing,
                 pitchColorMap: window._pitchColorMap ? { ...window._pitchColorMap } : {},
                 timelineSource: document.getElementById('timelineSource')?.value || 'manual',
                 canvasWidth: parseInt(document.getElementById('canvasWidth')?.value) || 1920,
@@ -81,6 +83,7 @@
                 viewPanY: window._viewPanY || 0
             };
         }
+        window._collectProjectFingerprint = collectState;
 
         // ====== Restore state to DOM ======
         function restoreState(state) {
@@ -285,6 +288,10 @@
                 if (tiS) tiS.value = window._tintIntensity;
                 if (tiV) tiV.value = window._tintIntensity;
             }
+            // Restore no-texture-smoothing flag (default off)
+            if (window._setNoTextureSmoothing) window._setNoTextureSmoothing(!!state.noTextureSmoothing);
+            else window._noTextureSmoothing = !!state.noTextureSmoothing;
+            if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
 
             // Auto fit & viewport state (must set before resizeCanvas)
             const autoBtn = document.getElementById('canvasSizeAutoBtn');
@@ -453,6 +460,7 @@
                         if (window._updateTextureOrderList) window._updateTextureOrderList();
                         const tf = document.getElementById('textureFileName');
                         if (tf) tf.innerText = (window._displayTextureNames ? window._displayTextureNames() : names.join(', '));
+                        if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
                     }
 
                     // Restore fonts
@@ -530,6 +538,7 @@
 
                     Toast.success('工程导入成功');
                     console.log('[IE] Import complete');
+                    if (window._refreshSavedFingerprint) window._refreshSavedFingerprint();
                 } catch (err) {
                     console.error('[IE] Import error:', err);
                     Toast.error('导入失败: ' + err.message);
@@ -598,7 +607,6 @@
                     document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                 } else {
-                    // ZIP
                     if (typeof JSZip === 'undefined') { Toast.error('JSZip 库未加载'); return; }
                     const zip = new JSZip();
                     state.textureNames = (window._textureFileNames || []).slice();
@@ -625,6 +633,7 @@
                     document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     URL.revokeObjectURL(url);
                 }
+                if (window._refreshSavedFingerprint) window._refreshSavedFingerprint();
             } catch (err) {
                 console.error('[IE] Export error:', err);
                 Toast.error('导出失败: ' + err.message);

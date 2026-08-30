@@ -25,6 +25,8 @@ body {
     top: 0;
     left: 0;
     right: 0;
+    justify-content: flex-end;
+    padding-left: calc(var(--title-w, 0px) + 20px);
 }
 
 .tool-group {
@@ -35,6 +37,24 @@ body {
     align-items: center;
     flex-wrap: nowrap;
     border: 1px solid rgba(102,204,255,0.25);
+}
+
+.emitter-group {
+    flex-wrap: wrap;
+}
+
+.emitter-group .tg {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    align-items: center;
+}
+
+.emitter-group .tg-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
 }
 
 input, select, button {
@@ -95,8 +115,15 @@ input[type="range"] {
     display: inline-block;
 }
 
-.title {
-    margin-right: auto;
+.toolbar-title {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: max-content;
+    display: flex;
+    align-items: center;
+    pointer-events: none;
 }
 
 .canvas-container {
@@ -113,7 +140,7 @@ canvas {
 .control-panel {
     position: fixed;
     right: 20px;
-    top: 113px;
+    top: calc(var(--toolbar-h, 0px) + 47px);
     width: 340px;
     min-width: 340px;
     max-width: 500px;
@@ -149,7 +176,7 @@ body.resizing {
 .panel-tabs {
     position: fixed;
     right: 20px;
-    top: 80px;
+    top: calc(var(--toolbar-h, 0px) + 14px);
     width: 340px;
     box-sizing: border-box;
     z-index: 36;
@@ -199,7 +226,7 @@ body.resizing {
     padding: 16px;
     padding-bottom: 20px;
     margin-left: 3px;
-    max-height: calc(100vh - 193px);
+    max-height: calc(100vh - var(--toolbar-h, 0px) - 127px);
 }
 
 .panel-file {
@@ -208,7 +235,7 @@ body.resizing {
     padding: 16px;
     padding-bottom: 20px;
     margin-left: 3px;
-    max-height: calc(100vh - 193px);
+    max-height: calc(100vh - var(--toolbar-h, 0px) - 127px);
 }
 .panel-file > h4:first-child {
     margin-top: 0; /* 首个内容与设计面板的 .mode-switch 顶边对齐 */

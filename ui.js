@@ -434,6 +434,7 @@
                 if (ue) ue.style.display = 'none';
                 rebuildFlatFromUnits();
                 updateTextureOrderList();
+                if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
                 if (textureFileNameSpan) textureFileNameSpan.innerText = (window._displayTextureNames ? window._displayTextureNames() : (window._textureFileNames || []).join(', '));
                 const allImgs = window._particleTextures || [];
                 const maxDim = Math.max(allImgs[0].width, allImgs[0].height);
@@ -464,6 +465,7 @@
                 if (ue) ue.style.display = 'none';
                 updateTextureOrderList();
                 if (textureFileNameSpan) textureFileNameSpan.innerText = '默认纹理（1张）';
+                if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
             });
         }
 
@@ -562,9 +564,13 @@
             }
             if (!showGroup) {
                 if (animGroup) animGroup.style.display = 'none';
+                const tor = document.getElementById('textureOrderRow');
+                if (tor) tor.style.display = 'none';
                 return;
             }
             if (animGroup) animGroup.style.display = '';
+            const tor = document.getElementById('textureOrderRow');
+            if (tor) tor.style.display = '';
             const orderLabel = document.getElementById('textureOrderLabel');
             if (orderLabel) orderLabel.textContent = multiTex ? '预览' : '排序';
 
@@ -857,6 +863,7 @@
                 textStyleRow.style.display = 'block';
                 window._particleTextMode = true;
             }
+            if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
         }
 
         if (appearanceMode) {
@@ -1098,6 +1105,39 @@
             window._tintIntensity = parseInt(tiSlider.value);
         }
 
+        const noSmoothingSwitch = document.getElementById('noSmoothingSwitch');
+        const noSmoothingRow = document.getElementById('noSmoothingRow');
+        window._setNoTextureSmoothing = function(v) {
+            window._noTextureSmoothing = !!v;
+            if (noSmoothingSwitch) noSmoothingSwitch.checked = !!v;
+        };
+        if (noSmoothingSwitch) {
+            noSmoothingSwitch.addEventListener('change', () => {
+                window._noTextureSmoothing = noSmoothingSwitch.checked;
+            });
+            noSmoothingSwitch.checked = !!window._noTextureSmoothing;
+        }
+        // 全矢量图（SVG）或文字模式时，关闭并隐藏「无插值」
+        window._syncNoSmoothingVisibility = function() {
+            if (!noSmoothingRow) return;
+            if (noSmoothingSwitch) {
+                const textModeOn = !!window._particleTextMode;
+                let allSvg = false;
+                const units = window._textureUnits || [];
+                if (units.length > 0) {
+                    allSvg = units.every(u => {
+                        const names = (u.frameNames && u.frameNames.length > 0) ? u.frameNames : [u.name];
+                        return names.some(n => /\.svg$/i.test(n));
+                    });
+                }
+                const hide = textModeOn || allSvg;
+                noSmoothingRow.style.display = hide ? 'none' : '';
+                if (hide) window._noTextureSmoothing = false;
+                noSmoothingSwitch.checked = !!window._noTextureSmoothing;
+            }
+        };
+        if (window._syncNoSmoothingVisibility) window._syncNoSmoothingVisibility();
+
         if (window._updateCoordDisplay) window._updateCoordDisplay();
         const exInput = document.getElementById('emitterX');
         const eyInput = document.getElementById('emitterY');
@@ -1310,6 +1350,45 @@
                     }
                 });
             });
+        }
+
+        // ---- 顶栏标题宽度（供工具区左侧避让） ----
+        const titleEl = document.querySelector('.title');
+        if (titleEl) {
+            const setTitleW = () => {
+                const ml = parseFloat(getComputedStyle(titleEl).marginLeft) || 0;
+                document.documentElement.style.setProperty('--title-w', (titleEl.getBoundingClientRect().width + ml) + 'px');
+            };
+            setTitleW();
+        }
+
+        // ---- 顶栏高度（换行后控制面板/标签随之下移，保持始终在顶栏底边以下） ----
+        const toolbarEl = document.querySelector('.toolbar');
+        const syncToolbarH = () => {
+            if (!toolbarEl) return;
+            document.documentElement.style.setProperty('--toolbar-h', toolbarEl.getBoundingClientRect().height + 'px');
+            if (fusedNav && panel) fusedNav.style.top = (panel.getBoundingClientRect().top + 80) + 'px';
+        };
+        if (toolbarEl) {
+            syncToolbarH();
+            requestAnimationFrame(syncToolbarH);
+            requestAnimationFrame(() => requestAnimationFrame(syncToolbarH));
+            window.addEventListener('resize', syncToolbarH);
+        }
+
+        // ---- 发射模式组内分隔符：换行后隐藏 ----
+        const divEl = document.querySelector('.emitter-divider');
+        const xyEl = document.querySelector('.emitter-xy');
+        const whaEl = document.querySelector('.emitter-wha');
+        const syncEmitterDivider = () => {
+            if (!divEl || !xyEl || !whaEl) return;
+            const sameRow = Math.round(xyEl.getBoundingClientRect().top) === Math.round(whaEl.getBoundingClientRect().top);
+            divEl.style.visibility = sameRow ? 'visible' : 'hidden';
+        };
+        if (divEl && xyEl && whaEl) {
+            requestAnimationFrame(syncEmitterDivider);
+            requestAnimationFrame(() => requestAnimationFrame(syncEmitterDivider));
+            window.addEventListener('resize', syncEmitterDivider);
         }
     }
 

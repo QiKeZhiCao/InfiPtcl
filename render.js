@@ -228,15 +228,22 @@
         let hasAlpha = false;
         const anmfParts = [];
         for (const fc of frameChunks) {
-            if (fc.alph) hasAlpha = true;
+            if (fc.alph || fc.vp8l) hasAlpha = true;
             // 尾字节：B=1(no blend) + D=0，整帧覆盖消除透明残影
             const head = [...L24(0), ...L24(0), ...L24(canvasW - 1), ...L24(canvasH - 1), ...L24(dur), 0x02];
             const body = [];
-            if (fc.alph) body.push(...fc.alph);
-            if (fc.vp8) body.push(...fc.vp8);
-            const payload = new Uint8Array(head.length + body.length);
+            if (fc.vp8l) {
+                // VP8L 无损帧：透明随位流本身，直接整体内嵌，不带 ALPH
+                body.push(fc.vp8l);
+            } else {
+                if (fc.alph) body.push(fc.alph);
+                if (fc.vp8) body.push(fc.vp8);
+            }
+            const bodyLen = body.reduce((s, b) => s + b.length, 0);
+            const payload = new Uint8Array(head.length + bodyLen);
             payload.set(new Uint8Array(head), 0);
-            if (body.length) payload.set(new Uint8Array(body), head.length);
+            let bp = head.length;
+            for (const b of body) { payload.set(b, bp); bp += b.length; }
             const bl = payload.length;
             const anmf = new Uint8Array(8 + bl);
             anmf[0] = 0x41; anmf[1] = 0x4e; anmf[2] = 0x4d; anmf[3] = 0x46;
@@ -527,6 +534,7 @@
         function previewExport() {
             if (exportCanvas) {
                 const mctx = mainCanvas.getContext('2d');
+                mctx.imageSmoothingEnabled = !window._noTextureSmoothing;
                 mctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
                 mctx.drawImage(exportCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
             }
@@ -560,7 +568,16 @@
                     });
                     if (size) canvasSize = size;
                 } else {
-                    canvasSize = readCanvasSize(new Uint8Array(await blob.arrayBuffer()));
+                    // 优先从 VP8X 读画布尺寸；无 VP8X（简单格式）时回退解码读取
+                    let size = readCanvasSize(new Uint8Array(await blob.arrayBuffer()));
+                    if (!size) {
+                        try {
+                            const bmp = await createImageBitmap(blob);
+                            size = { w: bmp.width, h: bmp.height };
+                            if (bmp.close) bmp.close();
+                        } catch(e) { size = null; }
+                    }
+                    if (size) canvasSize = size;
                 }
             }
             
@@ -607,9 +624,12 @@
                     const frameData = [];
                     for (const b of capturedFrameBlobs) {
                         const u8 = new Uint8Array(await b.arrayBuffer());
+                        // 优先无损（VP8L），否则有损（VP8 + 可选 ALPH）
+                        const vp8l = extractSubChunk(u8, 'VP8L');
                         frameData.push({
-                            vp8: extractSubChunk(u8, 'VP8 '),
-                            alph: extractSubChunk(u8, 'ALPH')
+                            vp8l,
+                            vp8: vp8l ? null : extractSubChunk(u8, 'VP8 '),
+                            alph: vp8l ? null : extractSubChunk(u8, 'ALPH')
                         });
                     }
                     animBlob = buildAnimatedWebP(frameData, canvasSize.w, canvasSize.h, fps, 0);

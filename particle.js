@@ -54,6 +54,7 @@
     let textureImages = [];
     window._particleTextures = [];
     window._particleMultiTex = false;
+    window._noTextureSmoothing = false;
 
     // 累加器变量（用于均匀发射）
     let emitAccumulator = 0;
@@ -240,6 +241,7 @@
             _tintCanvas2.width = size; _tintCanvas2.height = size;
         }
         _tintCtx2.clearRect(0, 0, size, size);
+        _tintCtx2.imageSmoothingEnabled = !window._noTextureSmoothing;
         _tintCtx2.drawImage(texture, 0, 0, size, size);
         const imageData = _tintCtx2.getImageData(0, 0, size, size);
         const d = imageData.data;
@@ -546,6 +548,7 @@
     }
     
     function render() {
+        renderCtx.imageSmoothingEnabled = !window._noTextureSmoothing;
         for (let p of particles) {
             renderCtx.save();
             renderCtx.globalAlpha = p.alpha;
@@ -652,6 +655,7 @@
                     } else if (p.hue !== undefined) {
                         const ts = Math.ceil(p.size);
                         if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
+                        _tintCtx.imageSmoothingEnabled = !window._noTextureSmoothing;
                         _tintCtx.clearRect(0, 0, ts, ts);
                         _tintCtx.fillStyle = `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`;
                         _tintCtx.fillRect(0, 0, ts, ts);
@@ -678,6 +682,7 @@
                     } else if (p.hue !== undefined) {
                         const ts = Math.ceil(p.size);
                         if (_tintCanvas.width !== ts || _tintCanvas.height !== ts) { _tintCanvas.width = ts; _tintCanvas.height = ts; }
+                        _tintCtx.imageSmoothingEnabled = !window._noTextureSmoothing;
                         _tintCtx.clearRect(0, 0, ts, ts);
                         _tintCtx.fillStyle = `hsl(${p.hue}, ${p.sat}%, ${p.light}%)`;
                         _tintCtx.fillRect(0, 0, ts, ts);
