@@ -30,6 +30,7 @@
     let fps = 30;
     let durationSec = 0;
     let originalOnFrameCaptured = null;
+    let exportOriginalState = null;
 
     function bindNumericSync(slider, input) {
         if (!slider || !input) return;
@@ -447,7 +448,7 @@
         if (clearBeforeRender && clearBeforeRender.checked && window._clearParticles) {
             window._clearParticles();
         }
-        const originalState = window._cloneParticleState();
+        exportOriginalState = window._cloneParticleState();
 
         // 分辨率倍率：离屏 canvas 渲染（不动主画布）
         const qualitySlider = document.getElementById('webpQuality');
@@ -549,6 +550,7 @@
             if (exportCancel) break;
             const target = renderStart + (frame + 1) * step;
             advanceTo(target);
+            if (window._renderTerminated) { exportCancel = true; break; }
 
             // 异步渲染等待，避免偶发截图空白
             await new Promise(resolve => requestAnimationFrame(resolve));
@@ -689,7 +691,10 @@
         // 恢复渲染目标（分辨率倍率时切回主画布）
         if (window._setExportTarget) window._setExportTarget(null);
         // 恢复所有原始状态（参数由 _restoreParticleState 恢复）
-        window._restoreParticleState(originalState);
+        if (exportOriginalState && window._restoreParticleState) {
+            window._restoreParticleState(exportOriginalState);
+            exportOriginalState = null;
+        }
         if (window.params) window.params.backgroundColor = originalBg;
         window._exporting = false;
         window._onFrameCaptured = originalOnFrameCaptured;
@@ -699,7 +704,9 @@
         exportProgressRow.style.display = 'none';
         if (exportStatusMsg) exportStatusMsg.innerText = '';
         
-        if (exportCancel) {
+        if (window._renderTerminated) {
+            // 终止错误已在 particle.js 检测点提示
+        } else if (exportCancel) {
             Toast.warn('渲染已取消');
         } else {
             Toast.success('渲染完成');
@@ -719,6 +726,10 @@
         if (cancelRow) cancelRow.style.display = 'none';
         exportProgressRow.style.display = 'none';
         if (exportStatusMsg) exportStatusMsg.innerText = '';
+        if (exportOriginalState && window._restoreParticleState) {
+            window._restoreParticleState(exportOriginalState);
+            exportOriginalState = null;
+        }
         isExporting = false;
     }
     

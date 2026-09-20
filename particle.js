@@ -8,6 +8,8 @@
         renderCanvas = c || canvas;
         renderCtx = renderCanvas.getContext('2d');
     };
+    // 渲染终止标志：检测到不可绘制的贴图引用时置位，停止动画循环并弹窗报错
+    window._renderTerminated = false;
     const _tintCanvas = document.createElement('canvas');
     const _tintCtx = _tintCanvas.getContext('2d');
     const _tintCanvas2 = document.createElement('canvas');
@@ -172,9 +174,6 @@
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
     };
-    window._setRandomRateMode = function(enabled) {
-        window._randomRateMode = enabled;
-    };
 
     // ---------- 核心函数 ----------
     function randomRange(min, max) {
@@ -304,7 +303,7 @@
     // 导出辅助函数
     window._cloneParticleState = function() {
         return {
-            particles: JSON.parse(JSON.stringify(particles)),
+            particles: particles.map(p => Object.assign({}, p)),
             emitterPos: { ...emitterPos },
             followMouse: followMouse,
             emitActive: emitActive,
@@ -547,6 +546,18 @@
         updateParticleCount();
     }
     
+    function isDrawable(o) {
+        return o === undefined || o === null ||
+            o instanceof HTMLCanvasElement || o instanceof HTMLImageElement;
+    }
+
+    function terminateRender(detail) {
+        if (window._renderTerminated) return;
+        window._renderTerminated = true;
+        console.error('粒子贴图数据已损坏，渲染已终止', detail);
+        if (window.Toast) window.Toast.error('粒子贴图数据已损坏，渲染已终止，请刷新页面');
+    }
+
     function render() {
         renderCtx.imageSmoothingEnabled = !window._noTextureSmoothing;
         for (let p of particles) {
@@ -560,6 +571,7 @@
                 const fontSize = p.size;
                 let fontFamily = p.font;
                 if (fontFamily === 'default') fontFamily = 'system-ui, sans-serif';
+                fontFamily = String(fontFamily || '').replace(/["'\\]/g, '');
                 const styles = p.styles || {};
                 let fontWeight = styles.weight || 'normal';
                 let fontStyle = styles.italic ? 'italic' : 'normal';
@@ -649,6 +661,8 @@
                         ? curFrame : (p.textureIndex !== undefined ? p.textureIndex : 0));
                     tintedTex = p.tintedFrames[idx];
                 }
+                if (!isDrawable(tintedTex)) { terminateRender({ field: 'tintedFrames', textureIndex: p.textureIndex }); continue; }
+                if (!isDrawable(useTex)) { terminateRender({ field: 'texture' }); continue; }
                 if (useTex && useTex.complete) {
                     if (tintedTex) {
                         renderCtx.drawImage(tintedTex, -half, -half);
@@ -728,6 +742,7 @@
     
     let prevTime = 0;
     function animate(nowMs) {
+        if (window._renderTerminated) return;
         requestAnimationFrame(animate);
         if (window._exporting) return;
         if (!prevTime) { prevTime = nowMs; return; }
@@ -872,7 +887,7 @@
         };
         const setFixed = (e) => {
             if (_panMode) return;
-            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, input, select, textarea, button')) return;
+            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button')) return;
             if (!window._particleFollowMouse) {
                 const c = getCanvasCoords(e.clientX, e.clientY);
                 emitterPos.x = c.x;
@@ -883,7 +898,7 @@
         };
         document.addEventListener('mousedown', (e) => {
             if (_panMode && e.button === 0) {
-                if (e.target.closest('.stepper-select, input, select, textarea')) return;
+                if (e.target.closest('.stepper-select, .color-popup, input, select, textarea')) return;
                 e.preventDefault();
                 _panMouseDown = true;
                 _panInitialized = false;
@@ -906,7 +921,7 @@
         // ---------- 滚轮：默认平移，Ctrl = 缩放（全页面有效，排除面板区域） ----------
         document.addEventListener('wheel', (e) => {
             if (_autoFit) return;
-            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, input, select, textarea, button')) return;
+            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button')) return;
             e.preventDefault();
             if (e.ctrlKey) {
                 const factor = 1 - e.deltaY * 0.005;

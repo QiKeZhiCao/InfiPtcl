@@ -123,7 +123,39 @@ input[type="range"] {
     width: max-content;
     display: flex;
     align-items: center;
+    pointer-events: auto;
+    text-decoration: none;
+    color: inherit;
+    outline: none;
+}
+
+.toolbar-title .title {
+    transition: opacity 0.25s;
+}
+
+.toolbar-title:hover .title {
+    opacity: 0;
+}
+
+.gh-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.25s;
     pointer-events: none;
+}
+
+.toolbar-title:hover .gh-icon {
+    opacity: 1;
+}
+
+.gh-icon img {
+    width: 26px;
+    height: 26px;
+    display: block;
 }
 
 .canvas-container {
@@ -744,3 +776,111 @@ textarea {
     font-size: 12px;
     padding: 8px 0;
 }
+
+/* ===== 技术债#14：内联样式迁移（通用工具类） ===== */
+.sel {
+    border-radius: 16px;
+    padding: 4px 10px;
+}
+.sel-list {
+    padding: 5px 10px;
+}
+.sel-auto {
+    min-width: 80px;
+}
+.sel-fill {
+    width: 100%;
+    min-width: 0;
+}
+.sel-end {
+    margin-left: auto;
+}
+.sel-mini {
+    background: #1a1c2a;
+    color: #99ddff;
+    border-radius: 16px;
+    padding: 2px 6px;
+}
+.sel-ellip {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.grow {
+    flex: 1;
+}
+.grow-min {
+    flex: 1;
+    min-width: 100px;
+}
+.h-gap {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.h-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    flex: 1;
+}
+.panel-h4 {
+    margin: 0;
+    border-left: 4px solid #66ccff;
+    padding-left: 10px;
+}
+button.mini-btn {
+    padding: 1px 6px;
+    font-size: 10px;
+    min-width: auto;
+}
+.pf-box {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    border-radius: 12px;
+    border: 1px solid rgba(102,204,255,0.3);
+}
+.toolbar .stat-plain {
+    border-left: none;
+    background: transparent;
+    padding: 0;
+    margin-left: 8px;
+}
+input.inp-flex {
+    flex: 1;
+    min-width: 80px;
+    border-radius: 16px;
+}
+input.inp-mini {
+    width: 60px;
+    border-radius: 16px;
+    padding: 2px 6px;
+}
+.mode-btn.fixed {
+    flex: none;
+    padding: 4px 16px;
+}
+.meta {
+    color: #8a90b0;
+    font-size: 12px;
+}
+.meta-ellip {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.mt-2 { margin-top: 2px; }
+.mt-4 { margin-top: 4px; }
+.mt-6 { margin-top: 6px; }
+.mb-2 { margin-bottom: 2px; }
+.mb-4 { margin-bottom: 4px; }
+.mb-6 { margin-bottom: 6px; }
+.pb-0 { padding-bottom: 0; }
+.nowrap { white-space: nowrap; }
+.hr-gap { margin-top: 16px; }
+.meta-indent { margin-left: 4px; }

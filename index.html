@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>InfiPtcl（粒子无限）</title>
-    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <link rel="icon" href="icons/favicon.svg" type="image/svg+xml">
     <link rel="stylesheet" href="ui.css">
     <script src="jszip.min.js"></script>
     <link rel="stylesheet" href="theme.css">
@@ -12,19 +12,26 @@
 </head>
 <body>
 
+<div id="boot-overlay" class="boot-overlay">
+    <div class="boot-text">加载中……</div>
+</div>
+
 <div class="toolbar">
-    <div class="toolbar-title">
+    <a class="toolbar-title" href="https://github.com/QiKeZhiCao/InfiPtcl" target="_blank" rel="noopener" title="打开 GitHub 仓库" aria-label="打开 GitHub 仓库">
         <div class="title">
             <span class="title-line-1">InfiPtcl</span>
             <span class="title-line-2">粒子无限</span>
-            <span class="title-line-3">v0.1.0.3</span>
+            <span class="title-line-3">v0.1.0.4-beta</span>
         </div>
-    </div>
+        <span class="gh-icon">
+            <!-- GitHub mark-octicon, MIT, github.com/primer/octicons -->
+            <img src="icons/mark-github.svg" alt="GitHub" />
+        </span>
+    </a>
     <div class="tool-group">
         <span>背景色</span>
         <div class="color-picker-wrapper">
-            <div id="bgPreview" class="color-preview" style="background: #000000;"></div>
-            <input type="color" id="bgColorPicker" style="display: none;">
+            <div id="bgPreview" class="color-preview"></div>
         </div>
     </div>
     <div class="tool-group emitter-group">
@@ -33,7 +40,7 @@
             <div class="tg-item">
                 <button id="followMouseBtn" class="mode-btn" aria-label="跟随鼠标模式">跟随鼠标</button>
                 <button id="fixedModeBtn" class="mode-btn" aria-label="固定点模式">固定点</button>
-                <button id="centerPointBtn" class="mode-btn" style="display: none;padding:1px 6px;font-size:10px;min-width:auto;">C</button>
+                <button id="centerPointBtn" class="mode-btn mini-btn" style="display: none;">C</button>
             </div>
             <div class="tg-item emitter-xy">
                 X <input type="number" id="emitterX" class="coord-input" value="0">
@@ -43,14 +50,14 @@
             <div class="tg-item emitter-wha">
                 W <input type="number" id="canvasWidth" class="coord-input canvas-size-input" value="1920">
                 H <input type="number" id="canvasHeight" class="coord-input canvas-size-input" value="1080">
-                <button id="canvasSizeAutoBtn" class="mode-btn" style="padding:1px 6px;font-size:10px;min-width:auto;" title="重置为容器尺寸">A</button>
+                <button id="canvasSizeAutoBtn" class="mode-btn mini-btn" title="重置为容器尺寸">A</button>
             </div>
         </div>
     </div>
     <div class="tool-group">
         <button id="panModeBtn" class="mode-btn" aria-label="平移模式">平移</button>
         <button id="clearBtn" aria-label="清除所有粒子">清除粒子</button>
-        <div class="stat" style="border-left: none; background: transparent; padding: 0; margin-left: 8px;">
+        <div class="stat stat-plain">
             粒子: <span id="particleCount" class="particle-count">0</span>
         </div>
     </div>
@@ -91,8 +98,8 @@
         <div class="param-group">
             <div class="param-row">
                 <span>发射量</span>
-                <input type="range" id="emitRate" min="1" max="800" step="5" value="220" aria-label="发射速率滑块" style="flex:1; min-width:60px;">
-                <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值" style="width:65px;">
+                <input type="range" id="emitRate" min="1" max="800" step="5" value="220" aria-label="发射速率滑块">
+                <input type="number" id="emitRateVal" class="range-value" step="1" value="220" aria-label="发射速率数值">
                 <span class="range-unit">个/s</span>
             </div>
             <div class="group-content">
@@ -160,9 +167,9 @@
         </div>
 
         <!-- ===== 外观 ===== -->
-        <div class="param-row" style="margin-bottom: 6px;">
-            <h4 style="margin:0; border-left:4px solid #66ccff; padding-left:10px; color:#88ddff; font-size:14px;">外观</h4>
-            <select id="appearanceMode" style="background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+        <div class="param-row mb-6">
+            <h4 class="panel-h4">外观</h4>
+            <select id="appearanceMode" class="sel">
                 <option value="image">图片</option>
                 <option value="text">文本</option>
             </select>
@@ -180,48 +187,48 @@
                     <button id="resetTextureBtn" class="file-label" aria-label="重置为默认纹理">重置</button>
                 </div>
             </div>
-            <div class="param-group" style="margin-top:2px;">
-                <div class="group-content" style="padding-left:24px; border-left:1px solid rgba(102,204,255,0.3);">
-                    <div class="param-row" id="noSmoothingRow" style="margin-bottom:4px;">
+            <div class="param-group mt-2">
+                <div class="group-content">
+                    <div class="param-row mb-4" id="noSmoothingRow">
                         <span>无插值</span>
                         <label class="switch"><input type="checkbox" id="noSmoothingSwitch"><span class="slider round"></span></label>
                     </div>
-                    <div id="multiTexRow" class="param-row" style="margin-top:4px;">
+                    <div id="multiTexRow" class="param-row mt-4">
                         <span>多图独立动画</span>
                         <label class="switch"><input type="checkbox" id="multiTexSwitch"><span class="slider round"></span></label>
                     </div>
-                    <div id="textureOrderRow" class="param-row" style="margin-top:4px;">
+                    <div id="textureOrderRow" class="param-row mt-4">
                         <span id="textureOrderLabel">顺序</span>
-                        <div id="textureOrderWrapper" style="flex:1; min-width:0; overflow:hidden; border-radius:12px; border:1px solid rgba(102,204,255,0.3);">
-                            <div id="textureOrderList" class="texture-order-list" style="margin-top:0; padding:6px; max-height:200px; overflow-y:auto; display:grid; grid-template-columns:repeat(auto-fill, minmax(78px,1fr)); gap:6px;"></div>
+                        <div id="textureOrderWrapper" class="pf-box">
+                            <div id="textureOrderList" class="texture-order-list"></div>
                         </div>
                     </div>
                 </div>
             </div>
-            <div class="param-group" id="animGroup" style="display:none;">
-                <div class="param-row" style="margin-bottom:4px;">
+<div class="param-group" id="animGroup" style="display:none;">
+            <div class="param-row mb-4">
                     <span>动画</span>
-                    <select id="animModeSelect" style="width:auto; min-width:80px; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+                    <select id="animModeSelect" class="sel sel-auto">
                         <option value="0">完全随机</option>
                         <option value="1">随机起始点</option>
                         <option value="2">固定顺序</option>
                     </select>
                 </div>
-                <div class="group-content" style="padding-bottom:0;">
+                <div class="group-content pb-0">
                     <div id="animFpsRow" class="param-row">
                         <span>播放速度</span>
-                        <input type="range" id="animFps" min="1" max="120" step="1" value="10" style="flex:1; min-width:60px;">
+                        <input type="range" id="animFps" min="1" max="120" step="1" value="10">
                         <input type="number" id="animFpsVal" class="range-value" step="1" value="10" style="width:55px;">
                         <span class="range-unit">FPS</span>
                     </div>
-                    <div id="unitAnimEditor" class="param-group" style="display:none; margin-top:6px;">
-                        <div class="param-row" style="margin-bottom:2px;">
-                            <select id="unitAnimTarget" aria-label="动画单元" style="width:100%; min-width:0; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;"></select>
+                    <div id="unitAnimEditor" class="param-group mt-6" style="display:none;">
+                        <div class="param-row mb-2">
+                            <select id="unitAnimTarget" aria-label="动画单元" class="sel sel-fill"></select>
                         </div>
-                        <div class="group-content" style="padding-left:24px; border-left:1px solid rgba(102,204,255,0.3);">
+                        <div class="group-content">
                             <div class="param-row">
                                 <span>动画顺序</span>
-                                <select id="unitAnimModeSelect" style="width:auto; min-width:80px; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+                                <select id="unitAnimModeSelect" class="sel sel-auto">
                                     <option value="0">完全随机</option>
                                     <option value="1">随机起始点</option>
                                     <option value="2">固定顺序</option>
@@ -229,7 +236,7 @@
                             </div>
                             <div class="param-row">
                                 <span>播放速度</span>
-                                <input type="range" id="unitAnimFps" min="1" max="120" step="1" value="10" style="flex:1; min-width:60px;">
+                                <input type="range" id="unitAnimFps" min="1" max="120" step="1" value="10">
                                 <input type="number" id="unitAnimFpsVal" class="range-value" step="1" value="10" style="width:55px;">
                                 <span class="range-unit">FPS</span>
                             </div>
@@ -242,12 +249,12 @@
         <!-- 文本模式设置 -->
         <div id="textSettings" class="param-row" style="display:none;">
             <span>内容</span>
-            <input type="text" id="textContentInput" placeholder="文字内容" value="粒子" style="flex:1; min-width:80px; background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:5px 10px;">
+            <input type="text" id="textContentInput" placeholder="文字内容" value="粒子" class="inp-flex">
         </div>
         <div id="textFontRow" class="param-row" style="display:none;">
             <span>字体</span>
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; flex:1;">
-                <select id="fontSelect" style="flex:1; background:#1e1f2c; min-width:100px; border:1px solid #6a6f9a; border-radius:16px; padding:5px 10px; color:white;">
+            <div class="h-row">
+                <select id="fontSelect" class="sel sel-list grow-min">
                     <option value="default">默认 UI 字体</option>
                     <option value="Arial">Arial</option>
                     <option value="Helvetica">Helvetica</option>
@@ -262,7 +269,7 @@
                     <option value="DengXian">等线</option>
                     <option value="Consolas">Consolas</option>
                 </select>
-                <label class="file-label" style="white-space:nowrap;">浏览
+                <label class="file-label nowrap">浏览
                     <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" style="display:none;">
                 </label>
             </div>
@@ -272,13 +279,13 @@
             <div class="group-content">
                 <div class="param-row">
                     <span>字距</span>
-                    <input type="range" id="fontLetterSpacingRange" min="0" max="100" step="0.5" value="0" style="flex:1; min-width:60px;">
-                    <input type="number" id="fontLetterSpacing" value="0" step="0.5" min="0" max="100" style="width:60px; background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;">
+                    <input type="range" id="fontLetterSpacingRange" min="0" max="100" step="0.5" value="0">
+                    <input type="number" id="fontLetterSpacing" value="0" step="0.5" min="0" max="100" class="inp-mini">
                     <span class="range-unit">px</span>
                 </div>
                 <div class="param-row">
                     <span>字重</span>
-                    <select id="fontWeightSelect" data-stepper-min="80" style="background:#1a1c2a; border:1px solid #6a6f9a; color:#99ddff; border-radius:16px; padding:2px 6px;">
+                    <select id="fontWeightSelect" data-stepper-min="80" class="sel-mini">
                         <option value="normal">常规</option>
                         <option value="bold">粗体</option>
                         <option value="lighter">细体</option>
@@ -303,18 +310,18 @@
             <span>不透明度</span>
             <div class="range-controls">
                     <input type="number" id="alphaMinVal" class="range-value" step="1" value="100" style="width:50px;">
-                    <input type="range" id="alphaMin" min="0" max="100" step="1" value="100" style="flex:1; min-width:40px;">
+                    <input type="range" id="alphaMin" min="0" max="100" step="1" value="100">
                 <span class="range-sep">~</span>
-                <input type="range" id="alphaMax" min="0" max="100" step="1" value="100" style="flex:1; min-width:40px;">
+                <input type="range" id="alphaMax" min="0" max="100" step="1" value="100">
                 <input type="number" id="alphaMaxVal" class="range-value" step="1" value="100" style="width:50px;">
                 <span class="range-unit">%</span>
             </div>
         </div>
 
         <!-- 调色器 -->
-        <div class="param-row" style="margin-top:6px;">
+        <div class="param-row mt-6">
             <span>调色器</span>
-            <select id="paletteMode" style="margin-left:auto; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+            <select id="paletteMode" class="sel sel-end">
                 <option value="list">取值集合</option>
                 <option value="range">变化区间</option>
                 <option value="midi">MIDI映射</option>
@@ -324,9 +331,9 @@
         <div class="param-group">
             <div class="group-content">
 
-                <div class="param-row" style="margin-bottom:6px;">
+                <div class="param-row mb-6">
                     <span>染色强度</span>
-                    <input type="range" id="tintIntensity" min="0" max="100" step="1" value="100" style="flex:1;">
+                    <input type="range" id="tintIntensity" min="0" max="100" step="1" value="100">
                     <input type="number" id="tintIntensityVal" class="range-value" step="1" value="100" style="width:50px;">
                     <span class="range-unit">%</span>
                 </div>
@@ -336,9 +343,9 @@
                         <span>色相</span>
                         <div class="range-controls">
                             <input type="number" id="hueMinVal" class="range-value" step="1" value="0" style="width:50px;">
-                            <input type="range" id="hueMin" min="0" max="360" step="1" value="0" style="flex:1; min-width:40px;">
+                            <input type="range" id="hueMin" min="0" max="360" step="1" value="0">
                             <span class="range-sep">~</span>
-                            <input type="range" id="hueMax" min="0" max="360" step="1" value="360" style="flex:1; min-width:40px;">
+                            <input type="range" id="hueMax" min="0" max="360" step="1" value="360">
                             <input type="number" id="hueMaxVal" class="range-value" step="1" value="360" style="width:50px;">
                             <span class="range-unit">°</span>
                         </div>
@@ -347,9 +354,9 @@
                         <span>饱和度</span>
                         <div class="range-controls">
                             <input type="number" id="satMinVal" class="range-value" step="1" value="60" style="width:50px;">
-                            <input type="range" id="satMin" min="0" max="100" step="1" value="60" style="flex:1; min-width:40px;">
+                            <input type="range" id="satMin" min="0" max="100" step="1" value="60">
                             <span class="range-sep">~</span>
-                            <input type="range" id="satMax" min="0" max="100" step="1" value="100" style="flex:1; min-width:40px;">
+                            <input type="range" id="satMax" min="0" max="100" step="1" value="100">
                             <input type="number" id="satMaxVal" class="range-value" step="1" value="100" style="width:50px;">
                             <span class="range-unit">%</span>
                         </div>
@@ -360,14 +367,14 @@
                 <div id="paletteListSection" style="display:none;">
                     <div class="param-row">
                         <span>取值集合</span>
-                        <textarea id="paletteColorInput" rows="2" placeholder='例如：{#2363A1, #114514, #ff8844}' style="flex:1;"></textarea>
+                        <textarea id="paletteColorInput" rows="2" placeholder='例如：{#2363A1, #114514, #ff8844}' class="grow"></textarea>
                     </div>
                 </div>
 
                 <div id="paletteMidiSection" style="display:none;">
                     <div class="param-row">
                         <span>映射表</span>
-                        <div style="flex:1; min-width:0; overflow:hidden; border-radius:12px; border:1px solid rgba(102,204,255,0.3);">
+                        <div class="pf-box">
                             <div id="midiPitchRows"></div>
                         </div>
                     </div>
@@ -449,9 +456,9 @@
 
         <!-- 5. 时间戳序列（仅序列脉冲模式显示） -->
         <div id="sequencePanel" style="display: none;">
-            <div class="param-row" style="margin-bottom: 6px;">
-                <h4 style="margin:0; border-left:4px solid #66ccff; padding-left:10px; color:#88ddff; font-size:14px;">时间戳序列</h4>
-                <select id="timelineSource" style="margin-left:auto; background:#1e1f2c; border:1px solid #6a6f9a; border-radius:16px; padding:4px 10px; color:white;">
+            <div class="param-row mb-6">
+                <h4 class="panel-h4">时间戳序列</h4>
+                <select id="timelineSource" class="sel sel-end">
                     <option value="manual">手动输入</option>
                     <option value="midi">MIDI</option>
                 </select>
@@ -469,7 +476,7 @@
             </div>
             <div class="param-row">
                 <span>精度</span>
-                <select id="precisionSelect" style="flex:1; background:#1e1f2c; color:white;">
+                <select id="precisionSelect" class="sel grow">
                     <option value="1">1 位小数（0.1s）</option>
                     <option value="2">2 位小数（0.01s）</option>
                     <option value="3" selected>3 位小数（0.001s）</option>
@@ -502,7 +509,7 @@
                     </div>
                     <div class="param-row">
                         <span>音轨</span>
-                        <select id="midiTrackSelect" style="flex:1; min-width:0; max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; background:#1e1f2c; color:white;">
+                        <select id="midiTrackSelect" class="sel-ellip">
                             <option value="all">&lt; 所有轨道合并 &gt;</option>
                         </select>
                     </div>
@@ -511,7 +518,7 @@
             </div>
             </div>
 
-        <hr id="exportSeparator" style="margin-top: 16px;">
+        <hr id="exportSeparator" class="hr-gap">
 
         <!-- 7. 渲染PNG序列 -->
         <div id="exportPanel">
@@ -519,7 +526,7 @@
             <div class="param-row">
                 <span>帧率</span>
                 <input type="range" id="exportFps" min="1" max="120" step="1" value="30" aria-label="渲染帧率滑块">
-                <div style="display: flex; align-items: center; gap: 4px;">
+                <div class="h-gap">
                     <input type="number" id="exportFpsVal" class="range-value" step="any" value="30" aria-label="渲染帧率数值" style="width: 70px;">
                     <span class="range-unit">FPS</span>
                 </div>
@@ -533,7 +540,7 @@
             <div class="param-row">
                 <span>分辨率倍率</span>
                 <input type="range" id="resolutionScale" min="0.1" max="10" step="0.1" value="1">
-                <div style="display: flex; align-items: center; gap: 4px;">
+                <div class="h-gap">
                     <input type="number" id="resolutionScaleVal" class="range-value" step="any" value="1" style="width: 70px;">
                     <span class="range-unit">x</span>
                 </div>
@@ -541,13 +548,13 @@
             <div class="param-row" id="webpQualityRow">
                 <span>图像质量</span>
                 <input type="range" id="webpQuality" min="0.1" max="1" step="0.01" value="0.92">
-                <div style="display: flex; align-items: center; gap: 4px;">
+                <div class="h-gap">
                     <input type="number" id="webpQualityVal" class="range-value" step="any" value="0.92" style="width: 70px;">
                 </div>
             </div>
             <div class="param-row">
                 <span>格式</span>
-                <select id="exportFormat" class="range-value" style="flex:1;">
+                <select id="exportFormat" class="range-value grow">
                     <option value="sequence" selected>WebP（静帧序列）</option>
                     <option value="animation">WebP（动图）</option>
                     <option value="png-sequence">PNG（静帧序列）</option>
@@ -556,7 +563,7 @@
             </div>
             <div class="param-row" id="exportMethodRow">
                 <span>生成方式</span>
-                <select id="exportMethod" class="range-value" style="flex:1;">
+                <select id="exportMethod" class="range-value grow">
                     <option value="folder" selected>直接写入文件夹</option>
                     <option value="zip">ZIP压缩包</option>
                 </select>
@@ -583,30 +590,30 @@
         <h4>信息</h4>
         <div class="param-row">
             <span>文件名</span>
-            <input type="text" id="projectName" class="range-value" value="未命名项目" style="flex:1;"><span id="fileNameExt" style="color:#8a90b0;font-size:12px;margin-left:4px;"></span>
+            <input type="text" id="projectName" class="range-value grow" value="未命名项目"><span id="fileNameExt" class="meta meta-indent"></span>
         </div>
         <div class="param-row">
             <span>大小</span>
-            <span id="fileSize" style="color:#8a90b0;font-size:12px;">—</span>
+            <span id="fileSize" class="meta">—</span>
         </div>
         <div class="param-row">
             <span>类型</span>
-            <span id="fileType" style="color:#8a90b0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+            <span id="fileType" class="meta meta-ellip">—</span>
         </div>
 
         <h4>存储</h4>
         <div class="param-row">
             <span>导入</span>
             <input type="file" id="importFileInput" accept=".json,.zip" style="display:none;">
-            <button id="importBtn" class="mode-btn" style="flex:none;padding:4px 16px;">浏览</button>
+            <button id="importBtn" class="mode-btn fixed">浏览</button>
         </div>
         <div class="param-row">
             <span>导出</span>
-            <select id="exportType" class="range-value" style="flex:1;">
+            <select id="exportType" class="range-value grow">
                 <option value="json">.json</option>
                 <option value="zip" selected>.zip</option>
             </select>
-            <button id="configExportBtn" class="mode-btn" style="flex:none;padding:4px 16px;">导出</button>
+            <button id="configExportBtn" class="mode-btn fixed">导出</button>
         </div>
     </div>
 </div>
@@ -627,6 +634,7 @@
     </div>
 </nav>
 
+<script src="color-picker.js"></script>
 <script src="midi-mapper.js"></script>
 <script src="particle.js"></script>
 <script src="ui.js"></script>
@@ -635,5 +643,38 @@
 <script src="render.js"></script>
 <script src="stepper-select.js"></script>
 <script src="unsaved.js"></script>
+<script>
+    (function() {
+        var mask = document.getElementById('boot-overlay');
+        if (!mask) return;
+        var ua = navigator.userAgent;
+        var hasTouch = navigator.maxTouchPoints > 0;
+        var mobileUA = /Mobi|Android|iPhone|iPod|Windows Phone/i.test(ua);
+        var padUA = /iPad|Macintosh/i.test(ua) && hasTouch;
+        var tinyWin = hasTouch && Math.min(window.innerWidth, window.innerHeight) <= 900 &&
+            !/Windows|Macintosh|X11|Linux/i.test(ua);
+        var isMobile = mobileUA || padUA || tinyWin;
+        if (isMobile && window.Toast) window.Toast.info('注意：本项目未对移动设备特别优化，敬请谅解！');
+        if (window.__skipBootOverlay) { mask.remove(); return; }
+        var fontOk = Promise.race([
+            document.fonts.load('16px "MapleMono-NF-CN-Regular"').then(function() { return true; }, function() { return false; }),
+            new Promise(function(res) { setTimeout(function() { res(false); }, 3000); })
+        ]);
+        fontOk.then(function(ok) {
+            if (!ok && window.Toast) window.Toast.warn('字体资源加载超时，已改用系统字体显示');
+        });
+        var done = function() {
+            if (mask._fading) return;
+            mask._fading = true;
+            mask.classList.add('boot-fade');
+            var removed = false;
+            var finish = function() { if (!removed) { removed = true; mask.remove(); } };
+            mask.addEventListener('transitionend', finish, { once: true });
+            setTimeout(finish, 800);
+        };
+        requestAnimationFrame(done);
+        setTimeout(done, 3000);
+    })();
+</script>
 </body>
 </html>

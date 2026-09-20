@@ -1,5 +1,15 @@
 // ui.js - UI 控制与事件绑定
 (function() {
+    // ====== 纹理 object URL 注册表（替换/重置/导入项目时统一 revoke，防累积泄漏）======
+    window._textureURLRegistry = (() => {
+        const urls = new Set();
+        return {
+            add(url) { if (url && url.indexOf('blob:') === 0) urls.add(url); },
+            revoke() { urls.forEach(u => { try { URL.revokeObjectURL(u); } catch (e) {} }); urls.clear(); },
+            size() { return urls.size; }
+        };
+    })();
+
     // ====== 面板拖拽调整宽度 ======
     const panel = document.querySelector('.control-panel');
     const tabs = document.querySelector('.panel-tabs');
@@ -199,14 +209,25 @@
             update();
         });
 
+        // 背景色改色同步到整个绘制区域（画布容器留边同色，而非仅画布内部）
+        window._setCanvasAreaBg = function(color) {
+            const box = document.querySelector('.canvas-container');
+            if (box) box.style.backgroundColor = color;
+        };
+        window._setCanvasAreaBg(window._particleParams.backgroundColor || '#000000');
+
         // 背景色
-        const bgPicker = document.getElementById('bgColorPicker');
         const bgPreview = document.getElementById('bgPreview');
-        if (bgPicker && bgPreview) {
-            bgPreview.addEventListener('click', () => bgPicker.click());
-            bgPicker.addEventListener('input', (e) => {
-                window._particleParams.backgroundColor = e.target.value;
-                bgPreview.style.backgroundColor = e.target.value;
+        if (bgPreview) {
+            bgPreview.addEventListener('click', () => {
+                if (window._openColorPicker) window._openColorPicker(bgPreview, {
+                    initial: window._particleParams.backgroundColor || '#000000',
+                    onPick: (c) => {
+                        window._particleParams.backgroundColor = c;
+                        bgPreview.style.backgroundColor = c;
+                        if (window._setCanvasAreaBg) window._setCanvasAreaBg(c);
+                    }
+                });
             });
         }
 
@@ -402,6 +423,7 @@
             textureUpload.addEventListener('change', async (e) => {
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
+                if (window._textureURLRegistry) window._textureURLRegistry.revoke();
                 const units = [];
                 let animSplitCount = 0;
                 for (const file of files) {
@@ -423,7 +445,9 @@
                     await new Promise((resolve, reject) => {
                         img.onload = resolve;
                         img.onerror = reject;
-                        img.src = URL.createObjectURL(file);
+                        const texUrl = URL.createObjectURL(file);
+                        if (window._textureURLRegistry) window._textureURLRegistry.add(texUrl);
+                        img.src = texUrl;
                     });
                     units.push({ name: file.name, isAnim: false, fps: 0, anim: null, frames: [img], frameNames: [file.name] });
                 }
@@ -457,6 +481,7 @@
         const resetTextureBtn = document.getElementById('resetTextureBtn');
         if (resetTextureBtn) {
             resetTextureBtn.addEventListener('click', () => {
+                if (window._textureURLRegistry) window._textureURLRegistry.revoke();
                 window._resetDefaultTexture();
                 window._textureFileNames = [];
                 window._textureUnits = [];
@@ -836,6 +861,7 @@
         }
 
         window._updateTextureOrderList = updateTextureOrderList;
+        updateTextureOrderList();
 
         // 外观下拉菜单
         const appearanceMode = document.getElementById('appearanceMode');

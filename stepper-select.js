@@ -18,6 +18,7 @@
     ];
 
     const registry = new Map();
+    let ss_uid = 0;
 
     function copyLayoutStyle(fromEl, toEl) {
         const cs = fromEl.style;
@@ -27,9 +28,10 @@
         }
     }
 
-    function wrap(id) {
-        const select = document.getElementById(id);
-        if (!select || registry.has(id) || select.dataset.stepperWrapped) return;
+    function wrapElement(select) {
+        if (!select) return null;
+        const gid = select.id = (select.id || ('ss-' + (++ss_uid)));
+        if (registry.has(gid) || select.dataset.stepperWrapped) return null;
         select.dataset.stepperWrapped = '1';
 
         const root = document.createElement('div');
@@ -41,7 +43,7 @@
         const label = select.getAttribute('aria-label')
             || select.closest('.param-row')?.querySelector('span')?.textContent?.trim()
             || select.getAttribute('id');
-        root.setAttribute('aria-label', label || id);
+        root.setAttribute('aria-label', label || gid);
 
         copyLayoutStyle(select, root);
         const minW = select.dataset.stepperMin;
@@ -246,11 +248,17 @@
 
         renderValue();
 
-        registry.set(id, { root, renderAll });
+        registry.set(gid, { root, renderAll });
+        return root;
+    }
+
+    function wrap(id) {
+        return wrapElement(document.getElementById(id));
     }
 
     window.StepperSelect = {
         wrapAll() { WRAP_IDS.forEach(wrap); },
+        wrapElement,
         rebuild(id) { const r = registry.get(id); if (r) r.renderAll(); },
         rebuildAll() { registry.forEach(r => r.renderAll()); }
     };

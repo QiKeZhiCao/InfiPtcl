@@ -93,11 +93,10 @@
             if (pn && state.projectName) pn.value = state.projectName;
 
             // Background color
-            const bg = document.getElementById('bgColorPicker');
             const bp = document.getElementById('bgPreview');
-            if (bg && state.particleParams && state.particleParams.backgroundColor) {
-                bg.value = state.particleParams.backgroundColor;
-                if (bp) bp.style.backgroundColor = state.particleParams.backgroundColor;
+            if (bp && state.particleParams && state.particleParams.backgroundColor) {
+                bp.style.backgroundColor = state.particleParams.backgroundColor;
+                if (window._setCanvasAreaBg) window._setCanvasAreaBg(state.particleParams.backgroundColor);
             }
 
             // Particle params
@@ -413,12 +412,16 @@
 
                     // Restore textures
                     if (textures.length > 0) {
+                        if (window._textureURLRegistry) window._textureURLRegistry.revoke();
                         const imgs = [];
                         const names = [];
                         for (const tex of textures) {
                             let url;
                             if (tex.data) url = tex.data; // base64 from JSON
-                            else if (tex.blob) url = URL.createObjectURL(tex.blob); // blob from ZIP
+                            else if (tex.blob) {
+                                url = URL.createObjectURL(tex.blob); // blob from ZIP
+                                if (window._textureURLRegistry) window._textureURLRegistry.add(url);
+                            }
                             else continue;
                             const img = await new Promise((resolve, reject) => {
                                 const i = new Image();

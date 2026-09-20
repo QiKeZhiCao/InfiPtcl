@@ -1,5 +1,50 @@
 (function() {
     let _dedupMsg = null;
+    const _hideQueue = [];
+    let _processing = false;
+
+    async function _processHideQueue() {
+        if (_processing) return;
+        _processing = true;
+        try {
+            while (_hideQueue.length) {
+                const el = _hideQueue.shift();
+                if (!el.parentNode) continue;
+                const container = el.parentNode;
+                const gap = parseFloat(getComputedStyle(container).rowGap) || 8;
+                el.classList.remove('toast-visible');
+                el.classList.add('toast-hiding');
+                const shiftPx = el.offsetHeight + gap;
+                const items = Array.from(container.children);
+                const idx = items.indexOf(el);
+                const followers = [];
+                for (let k = idx + 1; k < items.length; k++) {
+                    const sib = items[k];
+                    if (sib.classList.contains('toast-hiding')) continue;
+                    followers.push(sib);
+                    sib.classList.remove('toast-visible');
+                    sib.style.transform = 'translateX(0)';
+                    sib.style.opacity = '1';
+                }
+                await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                for (const sib of followers) {
+                    sib.style.transition = 'transform 0.25s ease-in';
+                    sib.style.transform = 'translateY(-' + shiftPx + 'px)';
+                }
+                await new Promise(resolve => setTimeout(resolve, 300));
+                if (el.parentNode) el.parentNode.removeChild(el);
+                for (const sib of followers) {
+                    if (sib.parentNode) {
+                        sib.style.transition = '';
+                        sib.style.transform = 'translateY(0)';
+                        sib.style.opacity = '1';
+                    }
+                }
+            }
+        } finally {
+            _processing = false;
+        }
+    }
 
     const Toast = {
         container: null,
@@ -31,11 +76,8 @@
             el.classList.add('toast-visible');
 
             setTimeout(() => {
-                el.classList.remove('toast-visible');
-                el.classList.add('toast-hiding');
-                el.addEventListener('animationend', () => {
-                    if (el.parentNode) el.parentNode.removeChild(el);
-                }, { once: true });
+                _hideQueue.push(el);
+                _processHideQueue();
             }, duration);
 
             return el;

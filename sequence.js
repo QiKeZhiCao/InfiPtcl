@@ -49,8 +49,6 @@
     let timelineSource = 'manual';
     window._timelineSource = timelineSource;
     
-    const burstEmit = window.burstEmit;
-    
     // MIDI pitch → color mapping
     const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
     function pitchToNoteName(p) {
@@ -130,22 +128,21 @@
             const swatch = document.createElement('span');
             swatch.className = 'pitch-swatch';
             swatch.style.background = hex;
-            const colorInput = document.createElement('input');
-            colorInput.type = 'color';
-            colorInput.value = hex;
-            colorInput.style.display = 'none';
             const hexSpan = document.createElement('span');
             hexSpan.className = 'pitch-hex';
             hexSpan.textContent = hex;
-            swatch.addEventListener('click', () => colorInput.click());
-            colorInput.addEventListener('input', function() {
-                swatch.style.background = this.value;
-                pitchColorMap[p] = this.value;
-                hexSpan.textContent = this.value;
+            swatch.addEventListener('click', () => {
+                if (window._openColorPicker) window._openColorPicker(swatch, {
+                    initial: pitchColorMap[p] || hex,
+                    onPick: (c) => {
+                        swatch.style.background = c;
+                        pitchColorMap[p] = c;
+                        hexSpan.textContent = c;
+                    }
+                });
             });
             row.appendChild(nameNum);
             row.appendChild(swatch);
-            row.appendChild(colorInput);
             row.appendChild(hexSpan);
             rows.appendChild(row);
         }
@@ -197,9 +194,8 @@
                     if (!seqPaused && seqPlaybackActive) {
                         const now = performance.now() / 1000;
                         seqStartRealTime = now - currentTime;
-        }
-    }
-    window._setSequenceMode = setMode;
+                    }
+                }
             }
             return true;
         } catch(e){
@@ -361,7 +357,7 @@
                 const hsl = window._hexToHsl(pitchColorMap[pitch]);
                 forceHsl = { h: hsl.h, s: hsl.s, l: hsl.l };
             }
-            if(burstEmit) burstEmit(count, forceHsl);
+            if (window.burstEmit) window.burstEmit(count, forceHsl);
             seqNextIndex++;
         }
         if (!seqLoop && seqNextIndex >= sequenceEvents.length) {
