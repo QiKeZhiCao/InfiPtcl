@@ -1135,11 +1135,13 @@
         const noSmoothingRow = document.getElementById('noSmoothingRow');
         window._setNoTextureSmoothing = function(v) {
             window._noTextureSmoothing = !!v;
+            if (window._clearTintCache) window._clearTintCache();
             if (noSmoothingSwitch) noSmoothingSwitch.checked = !!v;
         };
         if (noSmoothingSwitch) {
             noSmoothingSwitch.addEventListener('change', () => {
                 window._noTextureSmoothing = noSmoothingSwitch.checked;
+                if (window._clearTintCache) window._clearTintCache();
             });
             noSmoothingSwitch.checked = !!window._noTextureSmoothing;
         }
@@ -1158,7 +1160,10 @@
                 }
                 const hide = textModeOn || allSvg;
                 noSmoothingRow.style.display = hide ? 'none' : '';
-                if (hide) window._noTextureSmoothing = false;
+                if (hide && window._noTextureSmoothing) {
+                    window._noTextureSmoothing = false;
+                    if (window._clearTintCache) window._clearTintCache();
+                }
                 noSmoothingSwitch.checked = !!window._noTextureSmoothing;
             }
         };

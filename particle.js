@@ -103,12 +103,21 @@
     document.body.appendChild(emitterCrosshair);
     document.body.style.cursor = 'crosshair';
 
+    // 画布视口矩形缓存：避免每帧 getBoundingClientRect 触发强制布局
+    let _canvasRectCache = null;
+    function invalidateCanvasRect() { _canvasRectCache = null; }
+    window._invalidateCanvasRect = invalidateCanvasRect;
+    function getCanvasRect() {
+        if (!_canvasRectCache) _canvasRectCache = canvas.getBoundingClientRect();
+        return _canvasRectCache;
+    }
+
     function updateEmitterCrosshair() {
         if (window._exporting) {
             emitterCrosshair.style.display = 'none';
             return;
         }
-        const rect = canvas.getBoundingClientRect();
+        const rect = getCanvasRect();
         const z = window._viewZoom || 1;
         const x = rect.left + emitterPos.x * z;
         const y = rect.top + emitterPos.y * z;
@@ -159,6 +168,7 @@
         canvas.style.transform = `translate(${px}px, ${py}px) scale(${z})`;
         canvas.style.setProperty('--gb', (12 / z) + 'px');
         canvas.style.setProperty('--gs', (2 / z) + 'px');
+        invalidateCanvasRect();
     }
     window._applyViewTransform = applyViewTransform;
 
@@ -266,6 +276,34 @@
         return result;
     }
     
+    // ---------- 调色结果缓存 ----------
+    // 同一「纹理 + 尺寸 + 颜色 + 强度」只调色一次，避免每个粒子重复 getImageData + 逐像素运算。
+    // 以纹理对象为键（WeakMap），纹理被替换/释放后可自动回收。
+    let _tintCache = new WeakMap();
+    const _TINT_CACHE_PER_TEXTURE_MAX = 256;
+
+    function _tintCacheKey(size, hue, sat, light, intensity) {
+        return size + '|' + (hue | 0) + '|' + (sat | 0) + '|' + (light | 0) + '|' + Math.round((intensity ?? 1) * 100);
+    }
+
+    function getTintedTexture(texture, size, hue, sat, light, intensity) {
+        if (!texture) return null;
+        let map = _tintCache.get(texture);
+        if (!map) {
+            map = new Map();
+            _tintCache.set(texture, map);
+        }
+        const key = _tintCacheKey(size, hue, sat, light, intensity);
+        const cached = map.get(key);
+        if (cached) return cached;
+        const result = tintTexture(texture, size, hue, sat, light, intensity);
+        if (map.size >= _TINT_CACHE_PER_TEXTURE_MAX) map.clear();
+        map.set(key, result);
+        return result;
+    }
+    // 无插值开关等会改变调色结果时调用，丢弃全部缓存
+    window._clearTintCache = function() { _tintCache = new WeakMap(); };
+
     function updateParticleCount() {
         const countSpan = document.getElementById('particleCount');
         if (countSpan) countSpan.innerText = particles.length;
@@ -440,7 +478,7 @@
                     if (unit && unit.frames.length > 0) {
                         tintedFrames = unit.frames.map(t => {
                             if (t && t.complete) {
-                                try { return tintTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
+                                try { return getTintedTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
                             }
                             return null;
                         });
@@ -448,7 +486,7 @@
                 } else {
                     tintedFrames = texs.map(t => {
                         if (t && t.complete) {
-                                try { return tintTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
+                                try { return getTintedTexture(t, Math.ceil(size), hue, sat, light, (window._tintIntensity ?? 100) / 100); } catch(e) {}
                         }
                         return null;
                     });
@@ -1024,5 +1062,6 @@
 
         document.addEventListener('mousemove', updateFromMouse);
         window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('scroll', invalidateCanvasRect, { passive: true });
     }
 })();
