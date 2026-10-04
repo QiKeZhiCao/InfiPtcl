@@ -8,6 +8,9 @@
         renderCanvas = c || canvas;
         renderCtx = renderCanvas.getContext('2d');
     };
+    function targetScale() { return renderCanvas === canvas ? _backingScale : 1; }
+    function targetLogicalW() { return renderCanvas === canvas ? _logicalW : renderCanvas.width; }
+    function targetLogicalH() { return renderCanvas === canvas ? _logicalH : renderCanvas.height; }
     // 渲染终止标志：检测到不可绘制的贴图引用时置位，停止动画循环并弹窗报错
     window._renderTerminated = false;
     const _tintCanvas = document.createElement('canvas');
@@ -88,6 +91,13 @@
     let _isPinching = false;
     let _pinchData = {};
 
+    // ---------- 逻辑尺寸 / 位图尺寸解耦 ----------
+    // 逻辑尺寸固定（画布设定值），位图按屏幕实际需要降采样，避免高分辨率画布的空闲重绘开销。
+    let _logicalW = 0, _logicalH = 0;
+    let _backingScale = 1;
+    window._getLogicalSize = function() { return { w: _logicalW, h: _logicalH }; };
+    window._getBackingScale = function() { return _backingScale; };
+
     // DOM 十字准星覆盖层：发射中心在画布外也能显示
     const emitterCrosshair = document.createElement('div');
     emitterCrosshair.style.cssText = 'position: fixed; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; display: none;';
@@ -153,8 +163,8 @@
         const cw = document.getElementById('canvasWidth');
         const ch = document.getElementById('canvasHeight');
         if (cw && ch) {
-            cw.value = canvas.width;
-            ch.value = canvas.height;
+            cw.value = _logicalW || canvas.width;
+            ch.value = _logicalH || canvas.height;
         }
     }
 
@@ -162,8 +172,9 @@
         const z = window._viewZoom || 1;
         const px = window._viewPanX || 0;
         const py = window._viewPanY || 0;
-        canvas.style.width = canvas.width + 'px';
-        canvas.style.height = canvas.height + 'px';
+        if (!window._exporting && _logicalW > 0) applyBackingSize(false);
+        canvas.style.width = (_logicalW || canvas.width) + 'px';
+        canvas.style.height = (_logicalH || canvas.height) + 'px';
         canvas.style.transformOrigin = '0 0';
         canvas.style.transform = `translate(${px}px, ${py}px) scale(${z})`;
         canvas.style.setProperty('--gb', (12 / z) + 'px');
@@ -597,6 +608,8 @@
     }
 
     function render() {
+        const _s = targetScale();
+        renderCtx.setTransform(_s, 0, 0, _s, 0, 0);
         renderCtx.imageSmoothingEnabled = !window._noTextureSmoothing;
         for (let p of particles) {
             renderCtx.save();
@@ -771,10 +784,13 @@
     }
     
     function setBackground() {
+        renderCtx.setTransform(1, 0, 0, 1, 0, 0);
         renderCtx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
         if (!window._exporting) {
+            const s = targetScale();
+            renderCtx.setTransform(s, 0, 0, s, 0, 0);
             renderCtx.fillStyle = params.backgroundColor;
-            renderCtx.fillRect(0, 0, renderCanvas.width, renderCanvas.height);
+            renderCtx.fillRect(0, 0, targetLogicalW(), targetLogicalH());
         }
     }
     
@@ -803,6 +819,7 @@
     }
     
     window._stepSimulation = function(deltaSec) {
+        renderCtx.setTransform(1, 0, 0, 1, 0, 0);
         renderCtx.clearRect(0, 0, renderCanvas.width, renderCanvas.height);
         window._particleAnimMode = window._particleAnimMode || 0;
         window._particleAnimFps = window._particleAnimFps || 10;
@@ -818,27 +835,50 @@
     initEvents();
     requestAnimationFrame(animate);
 
-    function resizeCanvas() {
+    function computeLogicalSize() {
         if (_autoFit) {
-            canvas.width = containerWidth();
-            canvas.height = containerHeight();
-        } else {
-            const cw = document.getElementById('canvasWidth');
-            const ch = document.getElementById('canvasHeight');
-            if (cw && ch) {
-                const w = parseInt(cw.value);
-                const h = parseInt(ch.value);
-                canvas.width = (w > 0) ? w : containerWidth();
-                canvas.height = (h > 0) ? h : containerHeight();
-            } else {
-                canvas.width = containerWidth();
-                canvas.height = containerHeight();
-            }
+            return { w: Math.max(1, containerWidth()), h: Math.max(1, containerHeight()) };
         }
+        const cw = document.getElementById('canvasWidth');
+        const ch = document.getElementById('canvasHeight');
+        let w = cw ? parseInt(cw.value) : NaN;
+        let h = ch ? parseInt(ch.value) : NaN;
+        if (!(w > 0)) w = containerWidth();
+        if (!(h > 0)) h = containerHeight();
+        return { w: Math.max(1, w), h: Math.max(1, h) };
+    }
+    // 目标位图缩放：不超过 1（放大时保持满逻辑分辨率），且不超过设备像素比所需
+    function desiredBackingScale() {
+        if (window._exporting) return _backingScale;
+        const dpr = window.devicePixelRatio || 1;
+        const z = window._viewZoom || 1;
+        return Math.min(1, z * dpr);
+    }
+    // 按阈值应用位图尺寸，避免连续缩放时反复重分配
+    function applyBackingSize(force) {
+        if (_logicalW <= 0 || _logicalH <= 0) return false;
+        const s = desiredBackingScale();
+        const bw = Math.max(1, Math.round(_logicalW * s));
+        const bh = Math.max(1, Math.round(_logicalH * s));
+        if (!force && canvas.width > 0 && canvas.height > 0) {
+            const dw = Math.abs(bw - canvas.width) / canvas.width;
+            const dh = Math.abs(bh - canvas.height) / canvas.height;
+            if (dw < 0.12 && dh < 0.12) { _backingScale = canvas.width / _logicalW; return false; }
+        }
+        canvas.width = bw;
+        canvas.height = bh;
+        _backingScale = bw / _logicalW;
+        return true;
+    }
+    function resizeCanvas() {
+        const L = computeLogicalSize();
+        _logicalW = L.w;
+        _logicalH = L.h;
+        applyBackingSize(true);
         applyViewTransform();
         if (followMouse && emitterPos.x === 0 && emitterPos.y === 0) {
-            emitterPos.x = canvas.width/2;
-            emitterPos.y = canvas.height/2;
+            emitterPos.x = _logicalW/2;
+            emitterPos.y = _logicalH/2;
         }
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
@@ -882,8 +922,10 @@
     
     function getCanvasCoords(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
-        const sx = canvas.width / rect.width;
-        const sy = canvas.height / rect.height;
+        const lw = _logicalW || canvas.width;
+        const lh = _logicalH || canvas.height;
+        const sx = lw / rect.width;
+        const sy = lh / rect.height;
         return {
             x: (clientX - rect.left) * sx,
             y: (clientY - rect.top) * sy

@@ -455,23 +455,25 @@
         const webpQuality = qualitySlider ? parseFloat(qualitySlider.value) : 0.92;
         const scale = resolutionScaleSlider ? parseFloat(resolutionScaleSlider.value) : 1;
         const mainCanvas = document.getElementById('particleCanvas');
-        let exportCanvas = null;
+        // 导出始终使用独立画布：预览画布保持降采样，导出不受预览位图影响。
+        // 尺寸基于「逻辑尺寸 × 分辨倍率」，与预览位图尺寸无关。
+        const logicalSize = window._getLogicalSize ? window._getLogicalSize() : { w: mainCanvas.width, h: mainCanvas.height };
+        const outW = Math.max(1, Math.round(logicalSize.w * scale));
+        const outH = Math.max(1, Math.round(logicalSize.h * scale));
+        if (!await checkExportSize(outW, outH)) {
+            Toast.warn(`分辨率超限，请降低倍率`);
+            setPlaybackEnabled(true);
+            exportBtn.style.display = 'inline-block';
+            if (cancelRow) cancelRow.style.display = 'none';
+            exportProgressRow.style.display = 'none';
+            window._exporting = false;
+            return;
+        }
+        let exportCanvas = document.createElement('canvas');
+        exportCanvas.width = outW;
+        exportCanvas.height = outH;
+        window._setExportTarget(exportCanvas);
         if (scale !== 1) {
-            const outW = Math.round(mainCanvas.width * scale);
-            const outH = Math.round(mainCanvas.height * scale);
-            if (!await checkExportSize(outW, outH)) {
-                Toast.warn(`分辨率超限，请降低倍率`);
-                setPlaybackEnabled(true);
-                exportBtn.style.display = 'inline-block';
-                if (cancelRow) cancelRow.style.display = 'none';
-                exportProgressRow.style.display = 'none';
-                window._exporting = false;
-                return;
-            }
-            exportCanvas = document.createElement('canvas');
-            exportCanvas.width = outW;
-            exportCanvas.height = outH;
-            window._setExportTarget(exportCanvas);
             const p = window._particleParams;
             if (p) {
                 p.sizeMin *= scale; p.sizeMax *= scale;
@@ -535,6 +537,7 @@
         function previewExport() {
             if (exportCanvas) {
                 const mctx = mainCanvas.getContext('2d');
+                mctx.setTransform(1, 0, 0, 1, 0, 0);
                 mctx.imageSmoothingEnabled = !window._noTextureSmoothing;
                 mctx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
                 mctx.drawImage(exportCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
