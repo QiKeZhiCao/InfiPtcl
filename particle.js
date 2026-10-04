@@ -100,7 +100,7 @@
 
     // DOM 十字准星覆盖层：发射中心在画布外也能显示
     const emitterCrosshair = document.createElement('div');
-    emitterCrosshair.style.cssText = 'position: fixed; left: 0; top: 0; transform: translate(-50%, -50%); pointer-events: none; z-index: 5; display: none;';
+    emitterCrosshair.style.cssText = 'position: fixed; left: 0; top: 0; pointer-events: none; z-index: 5; display: none;';
     emitterCrosshair.innerHTML = '<svg width="36" height="36" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg" style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);">'
         + '<line x1="18" y1="5" x2="18" y2="31" stroke="#66ccff" stroke-width="2.5"/>'
         + '<line x1="5" y1="18" x2="31" y2="18" stroke="#66ccff" stroke-width="2.5"/>'
@@ -122,26 +122,46 @@
         return _canvasRectCache;
     }
 
+    // 准星脏检查状态：值不变则不写 DOM，静止时零开销。
+    // 用 transform 定位（只走合成），避免 left/top 触发布局。
+    let _chX = null, _chY = null, _chVisible = null;
+    let _chR = null, _chRVisible = null;
     function updateEmitterCrosshair() {
         if (window._exporting) {
-            emitterCrosshair.style.display = 'none';
+            if (_chVisible !== false) {
+                emitterCrosshair.style.display = 'none';
+                _chVisible = false;
+            }
             return;
         }
         const rect = getCanvasRect();
         const z = window._viewZoom || 1;
         const x = rect.left + emitterPos.x * z;
         const y = rect.top + emitterPos.y * z;
-        emitterCrosshair.style.display = 'block';
-        emitterCrosshair.style.left = x + 'px';
-        emitterCrosshair.style.top = y + 'px';
+        if (_chVisible !== true) {
+            emitterCrosshair.style.display = 'block';
+            _chVisible = true;
+        }
+        if (x !== _chX || y !== _chY) {
+            emitterCrosshair.style.transform = 'translate(' + x + 'px, ' + y + 'px) translate(-50%, -50%)';
+            _chX = x; _chY = y;
+        }
         const emitR = (window._particleParams && window._particleParams.emitRadius) || 0;
         const R = emitR * z;
         if (R > 3) {
-            emitterRadiusCircle.style.width = (R * 2) + 'px';
-            emitterRadiusCircle.style.height = (R * 2) + 'px';
-            emitterRadiusCircle.style.display = 'block';
-        } else {
+            const d = R * 2;
+            if (d !== _chR) {
+                emitterRadiusCircle.style.width = d + 'px';
+                emitterRadiusCircle.style.height = d + 'px';
+                _chR = d;
+            }
+            if (_chRVisible !== true) {
+                emitterRadiusCircle.style.display = 'block';
+                _chRVisible = true;
+            }
+        } else if (_chRVisible !== false) {
             emitterRadiusCircle.style.display = 'none';
+            _chRVisible = false;
         }
     }
     window._syncEmitterCrosshair = updateEmitterCrosshair;
@@ -315,9 +335,16 @@
     // 无插值开关等会改变调色结果时调用，丢弃全部缓存
     window._clearTintCache = function() { _tintCache = new WeakMap(); };
 
+    // 粒子计数脏检查：数量不变则不写 DOM；缓存元素引用，避免每帧查询
+    let _countEl = null;
+    let _lastCount = -1;
     function updateParticleCount() {
-        const countSpan = document.getElementById('particleCount');
-        if (countSpan) countSpan.innerText = particles.length;
+        if (!_countEl) _countEl = document.getElementById('particleCount');
+        if (!_countEl) return;
+        if (particles.length !== _lastCount) {
+            _lastCount = particles.length;
+            _countEl.textContent = _lastCount;
+        }
     }
     
     function createDefaultTexture() {
