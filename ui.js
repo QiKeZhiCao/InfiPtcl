@@ -139,6 +139,12 @@
 
         bindRange('fadeStartMin', 'fadeStartMax', 'fadeStartMin', 'fadeStartMax', true, 0.1);
         bindRange('fadeDurationMin', 'fadeDurationMax', 'fadeDurationMin', 'fadeDurationMax', true, 0.1);
+        ['fadeStartMin', 'fadeStartMax', 'fadeDurationMin', 'fadeDurationMax'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', () => {
+                if (window._refreshTotalDuration) window._refreshTotalDuration();
+            });
+        });
         bindRange('sizeMin', 'sizeMax', 'sizeMin', 'sizeMax', false, 1);
         bindRange('speedMin', 'speedMax', 'speedMin', 'speedMax', false, 5);
 
@@ -255,9 +261,8 @@
         if (centerBtn) {
             centerBtn.addEventListener('click', () => {
                 const canvas = document.getElementById('particleCanvas');
-                const cx = canvas.width / 2;
-                const cy = canvas.height / 2;
-                window._setEmitterPos(cx, cy);
+                const L = window._getLogicalSize ? window._getLogicalSize() : { w: canvas.width, h: canvas.height };
+                window._setEmitterPos(Math.round(L.w / 2), Math.round(L.h / 2));
             });
         }
 

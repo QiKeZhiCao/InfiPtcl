@@ -18,6 +18,40 @@
     const _tintCanvas2 = document.createElement('canvas');
     const _tintCtx2 = _tintCanvas2.getContext('2d', { willReadFrequently: true });
     let particles = [];
+
+    // 可复现随机源（mulberry32）：状态为 32 位整数，可存取
+    let _rngState = 12345;
+    let _rngSource = null;
+    function _rng() {
+        if (_rngSource) return _rngSource();
+        _rngState = (_rngState + 0x6D2B79F5) | 0;
+        let t = _rngState;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
+    window._setRngSeed = function(s) { _rngState = s | 0; };
+    window._getRngState = function() { return _rngState; };
+    window._setRngState = function(s) { _rngState = s | 0; };
+    let _initialSeed = ((Date.now() ^ (performance.now() * 1000)) | 0) & 0x7FFFFFFF;
+    _rngState = _initialSeed;
+    window._INITIAL_SEED = _initialSeed;
+    window._getInitialSeed = function() { return _initialSeed; };
+    window._setInitialSeed = function(s) { _initialSeed = s | 0; window._INITIAL_SEED = _initialSeed; };
+    // 逐粒子确定性随机源：编号 n 相同的粒子永远得到同一串随机数
+    function particleRng(n) {
+        let nLo = n % 4294967296;
+        let nHi = Math.floor(n / 4294967296);
+        let s = (_initialSeed ^ Math.imul(nLo | 0, 0x9E3779B1) ^ Math.imul(nHi | 0, 0x85EBCA77)) | 0;
+        return function() {
+            s = (s + 0x6D2B79F5) | 0;
+            let t = s;
+            t = Math.imul(t ^ (t >>> 15), t | 1);
+            t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+    }
+
     let emitterPos = { x: 0, y: 0 };
     let followMouse = true;
     let emitActive = true;
@@ -203,22 +237,38 @@
     }
     window._applyViewTransform = applyViewTransform;
 
+    // 平移所有已存在粒子（含解析化起点），实现「改发射点即整体跟随」
+    function shiftParticles(dx, dy) {
+        if (dx === 0 && dy === 0) return;
+        for (let i = 0; i < particles.length; i++) {
+            const p = particles[i];
+            p.x += dx; p.y += dy;
+            p.x0 += dx; p.y0 += dy;
+        }
+        if (window._isContinuousMode === false && window._isSeqPlaying && !window._isSeqPlaying()) {
+            setBackground(); render(); drawEmitter();
+        }
+    }
+
     window._setEmitterPos = function(x, y) {
+        if (!followMouse) shiftParticles(x - emitterPos.x, y - emitterPos.y);
         emitterPos.x = x;
         emitterPos.y = y;
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
+        updateEmitterCrosshair();
     };
     window._scaleEmitterPos = function(s) {
         emitterPos.x = Math.round(emitterPos.x * s);
         emitterPos.y = Math.round(emitterPos.y * s);
         window._particleEmitterPos = emitterPos;
         updateCoordDisplay();
+        updateEmitterCrosshair();
     };
 
     // ---------- 核心函数 ----------
     function randomRange(min, max) {
-        return min + Math.random() * (max - min);
+        return min + _rng() * (max - min);
     }
     function hexToHsl(hex) {
         hex = hex.replace(/^#/, '');
@@ -386,7 +436,9 @@
             params: JSON.parse(JSON.stringify(params)),
             animMode: window._particleAnimMode,
             animFps: window._particleAnimFps,
-            simTime: window._particleSimTime
+            simTime: window._particleSimTime,
+            emitAccumulator: emitAccumulator,
+            rngState: _rngState
         };
     };
     window._restoreParticleState = function(state) {
@@ -399,15 +451,40 @@
         window._particleAnimMode = state.animMode || 0;
         window._particleAnimFps = state.animFps || 10;
         window._particleSimTime = state.simTime || 0;
+        emitAccumulator = state.emitAccumulator || 0;
+        if (state.rngState != null) _rngState = state.rngState;
         updateParticleCount();
     };
     window._clearParticles = function() {
         particles = [];
         updateParticleCount();
     };
+
+    // 序列模式 seek：重演到目标时刻（解析物理，无需逐步推进）
+    window._seekSequence = function(targetTime, events, getForceHsl) {
+        particles = [];
+        emitAccumulator = 0;
+        const maxLife = ((params.fadeStartMax || 2) + (params.fadeDurationMax || 1)) + 1;
+        const minTime = targetTime - maxLife;
+        for (let k = 0; k < events.length; k++) {
+            const ev = events[k];
+            if (ev.time > targetTime) break;
+            if (ev.time < minTime) continue;
+            window._particleSimTime = ev.time;
+            const hsl = getForceHsl ? getForceHsl(k) : undefined;
+            window.burstEmit(ev.count, hsl, k * 10000);
+        }
+        window._particleSimTime = targetTime;
+        updatePhysics(0);
+        setBackground();
+        render();
+        drawEmitter();
+        updateParticleCount();
+    };
     
-    function createParticleWithRandomTexture(ex, ey, forceHsl) {
-        const angleOffset = Math.random() * Math.PI * 2;
+    function createParticleWithRandomTexture(ex, ey, forceHsl, n) {
+        _rngSource = (typeof n === 'number') ? particleRng(n) : null;
+        const angleOffset = _rng() * Math.PI * 2;
         const rad = randomRange(0, params.emitRadius);
         const px = ex + Math.cos(angleOffset) * rad;
         const py = ey + Math.sin(angleOffset) * rad;
@@ -442,41 +519,41 @@
         let font = window._particleSelectedFont || 'default';
         let styles = window._particleFontStyles || { italic: false, underline: false, strike: false, letterSpacing: 0, weight: 'normal' };
         let textureIndex = 0;
-        let birthTime = 0;
+        let birthTime = window._particleSimTime;
         const texs = window._particleTextures || [];
         let unitIndex = -1;
         
         if (isText) {
             const lines = (window._particleTextContent || '粒子').split('\n').filter(line => line.trim() !== '');
             if (lines.length === 0) lines.push(' ');
-            const randomLine = lines[Math.floor(Math.random() * lines.length)];
+            const randomLine = lines[Math.floor(_rng() * lines.length)];
             text = randomLine || ' ';
         } else if (window._particleMultiTex && (window._textureUnits || []).length > 0) {
             const units = window._textureUnits || [];
-            unitIndex = Math.floor(Math.random() * units.length);
+            unitIndex = Math.floor(_rng() * units.length);
             const unit = units[unitIndex];
             if (unit.frames.length > 0) {
                 const uMode = (unit.anim && unit.anim.mode != null) ? unit.anim.mode : 2;
                 if (unit.isAnim && uMode !== 0) {
                     if (uMode === 1) {
-                        textureIndex = Math.floor(Math.random() * unit.frames.length);
+                        textureIndex = Math.floor(_rng() * unit.frames.length);
                     } else {
                         textureIndex = 0;
                     }
                     texture = unit.frames[textureIndex];
                     birthTime = window._particleSimTime;
                 } else {
-                    textureIndex = Math.floor(Math.random() * unit.frames.length);
+                    textureIndex = Math.floor(_rng() * unit.frames.length);
                     texture = unit.frames[textureIndex];
                 }
             }
         } else {
             if (texs.length > 0) {
-                const idx = Math.floor(Math.random() * texs.length);
+                const idx = Math.floor(_rng() * texs.length);
                 texture = texs[idx];
                 textureIndex = idx;
                 if (window._particleAnimMode === 1) {
-                    textureIndex = Math.floor(Math.random() * texs.length);
+                    textureIndex = Math.floor(_rng() * texs.length);
                     texture = texs[textureIndex];
                     birthTime = window._particleSimTime;
                 } else if (window._particleAnimMode === 2) {
@@ -494,14 +571,14 @@
             const palette = window._paletteParams;
             if (palette && palette.mode !== 'off') {
                 if (palette.mode === 'range') {
-                    hue = palette.hueMin + Math.random() * (palette.hueMax - palette.hueMin);
-                    sat = palette.satMin + Math.random() * (palette.satMax - palette.satMin);
+                    hue = palette.hueMin + _rng() * (palette.hueMax - palette.hueMin);
+                    sat = palette.satMin + _rng() * (palette.satMax - palette.satMin);
                 } else if (palette.mode === 'list' && palette.colors.length > 0) {
-                    const hex = palette.colors[Math.floor(Math.random() * palette.colors.length)];
+                    const hex = palette.colors[Math.floor(_rng() * palette.colors.length)];
                     const hsl = hexToHsl(hex);
                     hue = hsl.h; sat = hsl.s; light = hsl.l;
                 } else if (palette.mode === 'midi') {
-                    hue = Math.random() * 360;
+                    hue = _rng() * 360;
                     sat = 80;
                     light = 60;
                 }
@@ -532,9 +609,11 @@
             } catch(e) {}
         }
 
-        const initAlpha = (params.alphaMin + Math.random() * (params.alphaMax - params.alphaMin)) / 100;
+        const initAlpha = (params.alphaMin + _rng() * (params.alphaMax - params.alphaMin)) / 100;
+        _rngSource = null;
 
         return {
+            x0: px, y0: py, vx0: vx, vy0: vy, rot0: initRot,
             x: px, y: py, vx, vy, size,
             life: maxLife,
             maxLife: maxLife,
@@ -554,12 +633,13 @@
         };
     }
 
-    window.burstEmit = function(count, forceHsl) {
+    window.burstEmit = function(count, forceHsl, baseN) {
         const texs = window._particleTextures || [];
         const ex = emitterPos.x, ey = emitterPos.y;
         for (let i = 0; i < count; i++) {
             if (particles.length >= params.maxParticles) particles.shift();
-            particles.push(createParticleWithRandomTexture(ex, ey, forceHsl));
+            const n = (typeof baseN === 'number') ? baseN + i : undefined;
+            particles.push(createParticleWithRandomTexture(ex, ey, forceHsl, n));
         }
         updateParticleCount();
     };
@@ -577,7 +657,7 @@
             rate = Math.max(0, rate);
             let target = rate * deltaSec;
             let count = Math.floor(target);
-            if (Math.random() < target - count) count++;
+            if (_rng() < target - count) count++;
             if (count) window.burstEmit(count);
         } else {
             // 非随机模式：累加器（均匀间隔）
@@ -591,33 +671,44 @@
     }
     
     function updatePhysics(deltaSec) {
-        const gx = params.gravityX, gy = params.gravityY, damp = params.damping;
+        const gx = params.gravityX, gy = params.gravityY;
+        const dampPerSec = Math.pow(params.damping, 60);
+        const lambda = -Math.log(dampPerSec);
+        const linear = lambda < 1e-6;
+        const now = window._particleSimTime;
         for (let i = particles.length-1; i >= 0; i--) {
             const p = particles[i];
-            p.life -= deltaSec;
-            if (p.life <= 0) {
+            const t = now - (p.birthTime || 0);
+            if (t >= p.maxLife) {
                 particles.splice(i,1);
                 continue;
             }
-            p.vx += gx * deltaSec;
-            p.vy += gy * deltaSec;
-            p.vx *= damp;
-            p.vy *= damp;
-            p.x += p.vx * deltaSec;
-            p.y += p.vy * deltaSec;
-            p.rot += p.rotSpeed * deltaSec;
-            const alive = p.maxLife - p.life;
-            if (alive < p.fadeStart) {
+            if (linear) {
+                p.vx = p.vx0 + gx * t;
+                p.vy = p.vy0 + gy * t;
+                p.x  = p.x0 + p.vx0 * t + 0.5 * gx * t * t;
+                p.y  = p.y0 + p.vy0 * t + 0.5 * gy * t * t;
+            } else {
+                const kt = Math.exp(-lambda * t);
+                const inv = 1 / lambda;
+                p.vx = p.vx0 * kt + gx * inv * (1 - kt);
+                p.vy = p.vy0 * kt + gy * inv * (1 - kt);
+                p.x  = p.x0 + (p.vx0 - gx * inv) * (1 - kt) * inv + gx * inv * t;
+                p.y  = p.y0 + (p.vy0 - gy * inv) * (1 - kt) * inv + gy * inv * t;
+            }
+            p.rot = p.rot0 + p.rotSpeed * t;
+            if (t < p.fadeStart) {
                 p.alpha = p.initAlpha;
             } else {
-                const fadeElapsed = alive - p.fadeStart;
-                if (fadeElapsed >= p.fadeDuration) {
+                const fe = t - p.fadeStart;
+                if (fe >= p.fadeDuration) {
                     p.alpha = 0;
                 } else {
-                    p.alpha = p.initAlpha * (1 - (fadeElapsed / p.fadeDuration));
+                    p.alpha = p.initAlpha * (1 - fe / p.fadeDuration);
                 }
             }
             if (p.alpha < 0) p.alpha = 0;
+            p.life = p.maxLife - t;
         }
         updateParticleCount();
     }
@@ -821,13 +912,15 @@
         }
     }
     
+    const SIM_STEP = 1 / 60;
+    let simAccum = 0;
     let prevTime = 0;
     function animate(nowMs) {
         if (window._renderTerminated) return;
         requestAnimationFrame(animate);
         if (window._exporting) return;
         if (!prevTime) { prevTime = nowMs; return; }
-        let delta = Math.min(0.033, (nowMs - prevTime) / 1000);
+        let delta = Math.min(0.1, (nowMs - prevTime) / 1000);
         if (delta <= 0) { prevTime = nowMs; return; }
         prevTime = nowMs;
         textMode = window._particleTextMode;
@@ -836,9 +929,16 @@
         fontStyles = window._particleFontStyles;
         window._particleAnimMode = window._particleAnimMode || 0;
         window._particleAnimFps = window._particleAnimFps || 10;
-        window._particleSimTime += delta;
-        updatePhysics(delta);
-        emitContinuous(delta);
+        const frozen = (window._isContinuousMode === false) && window._isSeqPlaying && !window._isSeqPlaying();
+        if (!frozen) {
+            simAccum += delta;
+            while (simAccum >= SIM_STEP) {
+                window._particleSimTime += SIM_STEP;
+                updatePhysics(SIM_STEP);
+                emitContinuous(SIM_STEP);
+                simAccum -= SIM_STEP;
+            }
+        }
         setBackground();
         render();
         drawEmitter();
@@ -991,16 +1091,13 @@
                 window._particleEmitterPos = emitterPos;
             }
             updateCoordDisplay();
+            updateEmitterCrosshair();
         };
         const setFixed = (e) => {
             if (_panMode) return;
-            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button')) return;
-            if (!window._particleFollowMouse) {
+            if (e.target.closest('.toolbar, .control-panel, .panel-file, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button, label')) return;            if (!window._particleFollowMouse) {
                 const c = getCanvasCoords(e.clientX, e.clientY);
-                emitterPos.x = c.x;
-                emitterPos.y = c.y;
-                window._particleEmitterPos = emitterPos;
-                updateCoordDisplay();
+                window._setEmitterPos(c.x, c.y);
             }
         };
         document.addEventListener('mousedown', (e) => {
@@ -1028,8 +1125,7 @@
         // ---------- 滚轮：默认平移，Ctrl = 缩放（全页面有效，排除面板区域） ----------
         document.addEventListener('wheel', (e) => {
             if (_autoFit) return;
-            if (e.target.closest('.toolbar, .control-panel, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button')) return;
-            e.preventDefault();
+            if (e.target.closest('.toolbar, .control-panel, .panel-file, .panel-tabs, .fused-nav, .playback-bar-container, .stepper-select, .color-popup, input, select, textarea, button, label')) return;            e.preventDefault();
             if (e.ctrlKey) {
                 const factor = 1 - e.deltaY * 0.005;
                 const oldZ = window._viewZoom;

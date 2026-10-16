@@ -80,7 +80,8 @@
                 autoFit: document.getElementById('canvasSizeAutoBtn')?.classList.contains('active') ?? true,
                 viewZoom: window._viewZoom || 1,
                 viewPanX: window._viewPanX || 0,
-                viewPanY: window._viewPanY || 0
+                viewPanY: window._viewPanY || 0,
+                rngSeed: window._getInitialSeed ? window._getInitialSeed() : 12345
             };
         }
         window._collectProjectFingerprint = collectState;
@@ -88,6 +89,11 @@
         // ====== Restore state to DOM ======
         function restoreState(state) {
             if (!state) return;
+            // RNG 种子：与工程一起恢复，保证同一工程效果可复现
+            if (state.rngSeed != null && window._setInitialSeed) {
+                window._setInitialSeed(state.rngSeed);
+                if (window._setRngSeed) window._setRngSeed(state.rngSeed);
+            }
             // Project name
             const pn = document.getElementById('projectName');
             if (pn && state.projectName) pn.value = state.projectName;
@@ -539,6 +545,8 @@
 
                     window.StepperSelect?.rebuildAll();
 
+                    if (window._clearParticles) window._clearParticles();
+                    if (window._seekSequence) window._seekSequence(0, [], null);
                     Toast.success('工程导入成功');
                     console.log('[IE] Import complete');
                     if (window._refreshSavedFingerprint) window._refreshSavedFingerprint();

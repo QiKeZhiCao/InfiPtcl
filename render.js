@@ -441,6 +441,7 @@
         window._onFrameCaptured = null;
         
         window._exporting = true;
+        if (window._setRngSeed) window._setRngSeed(window._INITIAL_SEED || 12345);
         if (window._syncEmitterCrosshair) window._syncEmitterCrosshair();
         await new Promise(resolve => requestAnimationFrame(resolve));
         
@@ -513,9 +514,7 @@
                             window._stepSimulation(dt);
                             simulatedTime += dt;
                         }
-                        for (let i = 0; i < burstCount; i++) {
-                            window.burstEmit(1, getForceHsl(nextPulseIdx));
-                        }
+                        window.burstEmit(burstCount, getForceHsl(nextPulseIdx), nextPulseIdx * 10000);
                         nextPulseIdx++;
                         continue;
                     }
@@ -549,6 +548,9 @@
         
         // 【核心】所有帧统一：按目标时刻推进模拟（含脉冲发射）→ 截图
         let canvasSize = null;
+        const exportT0 = performance.now();
+        const frameTimes = [];
+        const SPEED_WINDOW = 10;
         for (let frame = 0; frame < totalFrames; frame++) {
             if (exportCancel) break;
             const target = renderStart + (frame + 1) * step;
@@ -612,7 +614,25 @@
             exportProgress.value = (capturedFrames / totalFrames) * 100;
             const pct = ((capturedFrames / totalFrames) * 100).toFixed(1);
             exportProgressText.innerText = `${capturedFrames}/${totalFrames} ${pct}%`;
-            exportStatusMsg.innerText = `渲染区间：${renderStart.toFixed(2)}s → ${renderEnd.toFixed(2)}s`;
+            const elapsedSec = (performance.now() - exportT0) / 1000;
+            frameTimes.push(performance.now());
+            if (frameTimes.length > SPEED_WINDOW) frameTimes.shift();
+            let speedFps = 0;
+            if (frameTimes.length >= 2) {
+                const win = (frameTimes[frameTimes.length - 1] - frameTimes[0]) / 1000;
+                speedFps = win > 0 ? (frameTimes.length - 1) / win : 0;
+            }
+            const remainSec = speedFps > 0 ? (totalFrames - capturedFrames) / speedFps : 0;
+            const fmtDur = (s) => {
+                s = Math.max(0, Math.round(s));
+                const m = Math.floor(s / 60), sec = s % 60;
+                return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+            };
+            exportStatusMsg.innerText =
+                `渲染区间：${fmtDur(renderStart)} → ${fmtDur(renderEnd)}\n` +
+                `速度：${speedFps.toFixed(2)} 帧/秒\n` +
+                `已用：${fmtDur(elapsedSec)}\n` +
+                `剩余：${fmtDur(remainSec)}`;
         }
         
         // 动图模式：用所有帧封装动画（WebP/APNG，loop=0 无限循环）

@@ -513,6 +513,7 @@ textarea {
 }
 
 #exportStatusMsg {
+    white-space: pre-line;
     text-align: center;
     font-size: 12px;
     color: #8a90b0;
@@ -578,7 +579,6 @@ textarea {
     display: block;
     background: transparent;
     -webkit-user-drag: none;
-    user-drag: none;
 }
 
 .texture-order-item .item-idx {

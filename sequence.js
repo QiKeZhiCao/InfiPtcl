@@ -162,14 +162,21 @@
     
     function updateTotalDuration() {
         if (sequenceEvents.length === 0) totalDuration = 0;
-        else totalDuration = sequenceEvents[sequenceEvents.length-1].time;
+        else {
+            const p = window._particleParams || {};
+            const maxLife = (p.fadeStartMax || 2) + (p.fadeDurationMax || 1);
+            totalDuration = sequenceEvents[sequenceEvents.length-1].time + maxLife;
+        }
         window._sequenceTotal = totalDuration;
         if (totalTimeSpan) totalTimeSpan.innerText = totalDuration.toFixed(2) + 's';
         if (progressSlider) progressSlider.max = totalDuration;
-        if (progressSlider) progressSlider.value = seqPausedTime;
-        if (currentTimeInput) currentTimeInput.value = seqPausedTime.toFixed(2);
+        if (!seqPlaybackActive) {
+            if (progressSlider) progressSlider.value = seqPausedTime;
+            if (currentTimeInput) currentTimeInput.value = seqPausedTime.toFixed(2);
+        }
         if (window._updateExportDurationMax) window._updateExportDurationMax();
     }
+    window._refreshTotalDuration = updateTotalDuration;
     
     function loadTimeline(resetProgress = true) {
         try {
@@ -274,6 +281,9 @@
             seqPausedTime = targetTime;
             updateProgressDisplay(targetTime);
         }
+        if (window._seekSequence) {
+            window._seekSequence(targetTime, sequenceEvents, getForceHslForIndex);
+        }
     }
     
     function playSequence() {
@@ -325,6 +335,9 @@
         seqNextIndex = 0;
         seqPausedTime = 0;
         updateProgressDisplay(0);
+        if (window._seekSequence) {
+            window._seekSequence(0, sequenceEvents, getForceHslForIndex);
+        }
         if (seqPlayPauseBtn) seqPlayPauseBtn.innerHTML = '播放 （空格）';
         if(window._isContinuousMode === false && continuousModeBtn && continuousModeBtn.classList.contains('mode-active')){
             window._isContinuousMode = true;
@@ -332,6 +345,18 @@
         if (playbackBar) playbackBar.style.display = 'flex';
     }
     
+    function getForceHslForIndex(idx) {
+        const paletteMode = document.getElementById('paletteMode')?.value;
+        const pitch = sequencePitches[idx];
+        if (paletteMode === 'midi' && pitch != null && pitchColorMap[pitch]) {
+            const hsl = window._hexToHsl(pitchColorMap[pitch]);
+            return { h: hsl.h, s: hsl.s, l: hsl.l };
+        }
+        return undefined;
+    }
+
+    window._isSeqPlaying = function() { return seqPlaybackActive && !seqPaused; };
+
     function updateSequence(currentRealSec) {
         if (!seqPlaybackActive || seqPaused) return;
         const elapsed = currentRealSec - seqStartRealTime;
@@ -349,15 +374,7 @@
         }
         const currentElapsed = currentRealSec - seqStartRealTime;
         while (seqNextIndex < sequenceEvents.length && currentElapsed >= sequenceEvents[seqNextIndex].time) {
-            const count = sequenceEvents[seqNextIndex].count;
-            let forceHsl;
-            const paletteMode = document.getElementById('paletteMode')?.value;
-            const pitch = sequencePitches[seqNextIndex];
-            if (paletteMode === 'midi' && pitch != null && pitchColorMap[pitch]) {
-                const hsl = window._hexToHsl(pitchColorMap[pitch]);
-                forceHsl = { h: hsl.h, s: hsl.s, l: hsl.l };
-            }
-            if (window.burstEmit) window.burstEmit(count, forceHsl);
+            if (window.burstEmit) window.burstEmit(sequenceEvents[seqNextIndex].count, getForceHslForIndex(seqNextIndex), seqNextIndex * 10000);
             seqNextIndex++;
         }
         if (!seqLoop && seqNextIndex >= sequenceEvents.length) {
@@ -399,6 +416,7 @@
                 }
             }
         } else {
+            if (window._seekSequence) window._seekSequence(0, [], null);
             if (sequenceModeBtn) sequenceModeBtn.classList.add('mode-active');
             if (continuousModeBtn) continuousModeBtn.classList.remove('mode-active');
             if (playbackBar) playbackBar.style.display = 'flex';
@@ -431,14 +449,7 @@
             const val = parseFloat(e.target.value);
             if (!isNaN(val) && sequenceEvents.length) {
                 if (currentTimeInput) currentTimeInput.value = val.toFixed(2);
-                if (!seqPlaybackActive || seqPaused) {
-                    seqPausedTime = val;
-                    let newIdx = 0;
-                    while (newIdx < sequenceEvents.length && sequenceEvents[newIdx].time < val) newIdx++;
-                    seqNextIndex = newIdx;
-                } else {
-                    seekTo(val);
-                }
+                seekTo(val);
             }
         });
         progressSlider.addEventListener('change', (e) => {
